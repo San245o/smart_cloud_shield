@@ -88,7 +88,7 @@ def run():
             ("guest1", "guest", "general", 0),
         ]:
             email_map = {
-                "admin": os.environ.get("ADMIN_ALERT_EMAIL") or os.environ.get("MAIL_USER") or "sankeerthbanagar2@gmail.com",
+                "admin": os.environ.get("ADMIN_ALERT_EMAIL") or os.environ.get("MAIL_USER") or "banagarsankeerth@gmail.com",
                 "alice": os.environ.get("ALICE_EMAIL") or "raghavendranr28781@gmail.com",
                 "bob": os.environ.get("BOB_EMAIL") or "raghavendranr1218@gmail.com",
             }

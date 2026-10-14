@@ -117,7 +117,7 @@ def create_app(db_uri=None, config_class=Config):
         db.create_all()
         # Auto-sync user emails to configured accounts (handles cloud deployments where DB was seeded before env vars)
         try:
-            target_admin = os.environ.get("ADMIN_ALERT_EMAIL") or os.environ.get("MAIL_USER") or "sankeerthbanagar2@gmail.com"
+            target_admin = os.environ.get("ADMIN_ALERT_EMAIL") or os.environ.get("MAIL_USER") or "banagarsankeerth@gmail.com"
             target_alice = os.environ.get("ALICE_EMAIL") or "raghavendranr28781@gmail.com"
             target_bob = os.environ.get("BOB_EMAIL") or "raghavendranr1218@gmail.com"
 

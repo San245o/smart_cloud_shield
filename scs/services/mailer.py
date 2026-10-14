@@ -70,6 +70,15 @@ def _dispatch_resend_api(
         if "resend.dev" not in sender and not os.environ.get("RESEND_CUSTOM_DOMAIN"):
             sender = "Smart Cloud Shield <onboarding@resend.dev>"
 
+        # Resend Sandbox Rule: In free sandbox mode, Resend strictly allows delivery only to the account owner's email.
+        # We automatically route sandbox emails to banagarsankeerth@gmail.com so no 403 occurs.
+        resend_target = os.environ.get("RESEND_TO") or "banagarsankeerth@gmail.com"
+        actual_to = to
+        actual_subject = subject
+        if not os.environ.get("RESEND_CUSTOM_DOMAIN") and to.lower() != resend_target.lower():
+            actual_to = resend_target
+            actual_subject = f"[{to}] {subject}"
+
         url = "https://api.resend.com/emails"
         headers = {
             "Authorization": f"Bearer {api_key.strip()}",
@@ -78,8 +87,8 @@ def _dispatch_resend_api(
         }
         payload = {
             "from": sender,
-            "to": [to],
-            "subject": subject,
+            "to": [actual_to],
+            "subject": actual_subject,
             "text": text_body,
         }
         if html_body:
