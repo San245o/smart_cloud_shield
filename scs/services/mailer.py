@@ -370,7 +370,7 @@ def send_security_alert_email(incident, recipient_email: Optional[str] = None) -
     policy violation, or insider exfiltration attempt.
     """
     cfg = current_app.config if current_app else {}
-    to_email = recipient_email or cfg.get("ADMIN_ALERT_EMAIL") or os.environ.get("ADMIN_ALERT_EMAIL") or "security@smartcloudshield.local"
+    to_email = recipient_email or cfg.get("ADMIN_ALERT_EMAIL") or os.environ.get("ADMIN_ALERT_EMAIL") or os.environ.get("MAIL_USER") or "sankeerthbanagar2@gmail.com"
     
     user_name = incident.user.username if incident.user else "Unknown"
     file_name = incident.file.original_name if incident.file else "Unknown"

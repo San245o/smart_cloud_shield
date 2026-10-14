@@ -115,5 +115,26 @@ def create_app(db_uri=None, config_class=Config):
 
     with app.app_context():
         db.create_all()
+        # Auto-sync user emails to configured accounts (handles cloud deployments where DB was seeded before env vars)
+        try:
+            target_admin = os.environ.get("ADMIN_ALERT_EMAIL") or os.environ.get("MAIL_USER") or "sankeerthbanagar2@gmail.com"
+            target_alice = os.environ.get("ALICE_EMAIL") or "raghavendranr28781@gmail.com"
+            target_bob = os.environ.get("BOB_EMAIL") or "raghavendranr1218@gmail.com"
+
+            admin_u = User.query.filter_by(username="admin").first()
+            if admin_u and ("corp.example" in admin_u.email or admin_u.email != target_admin):
+                admin_u.email = target_admin
+
+            alice_u = User.query.filter_by(username="alice").first()
+            if alice_u and "corp.example" in alice_u.email:
+                alice_u.email = target_alice
+
+            bob_u = User.query.filter_by(username="bob").first()
+            if bob_u and "corp.example" in bob_u.email:
+                bob_u.email = target_bob
+
+            db.session.commit()
+        except Exception:
+            pass
 
     return app
