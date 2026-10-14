@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% block title %}Secure In-Browser Preview - {{ file.original_name }}{% endblock %}
+{% block body %}
+<style>
+  .watermark-container {
+    position: relative;
+    overflow: hidden;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    min-height: 440px;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .watermark-overlay {
+    position: absolute;
+    top: 0; left: 0;
+    width: 200%; height: 200%;
+    pointer-events: none;
+    display: flex;
+    flex-wrap: wrap;
+    align-content: space-around;
+    justify-content: space-around;
+    transform: rotate(-25deg) translate(-20%, -20%);
+    opacity: 0.06;
+    z-index: 10;
+    color: #0f172a;
+    font-weight: 700;
+    font-size: 1rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+  .watermark-item {
+    padding: 30px 40px;
+    white-space: nowrap;
+  }
+  .preview-content {
+    position: relative;
+    z-index: 5;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.875rem;
+    color: var(--text-primary);
+    white-space: pre-wrap;
+    word-break: break-all;
+    max-height: 560px;
+    overflow-y: auto;
+    background: var(--surface-subtle);
+    padding: 1.25rem;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    line-height: 1.6;
+  }
+  .preview-img {
+    position: relative;
+    z-index: 5;
+    max-width: 100%;
+    max-height: 560px;
+    object-fit: contain;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+  }
+  @media print {
+    body { display: none !important; }
+  }
+</style>
+
+<div class="panel mb-3">
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+    <div>
+      <div class="d-flex align-items-center gap-2 mb-1">
+        <h1 class="h6 mb-0 fw-bold">{{ file.original_name }}</h1>
+        <span class="chip sens-{{ file.sensitivity }}">{{ file.sensitivity.replace('_', ' ')|capitalize }}</span>
+        {% if is_redacted %}
+        <span class="chip chip-warn">Masked Copy</span>
+        {% endif %}
+      </div>
+      <div class="text-muted small">
+        {{ file.department|capitalize }} &bull; {{ (file.size / 1024)|round(1) }} KB
+      </div>
+    </div>
+    <div class="d-flex gap-2">
+      <a href="{{ url_for('files') }}" class="btn btn-outline-secondary btn-sm">&larr; Back to Files</a>
+      {% if not is_redacted and not file.is_quarantined %}
+      <a href="{{ url_for('download', fid=file.id) }}" class="btn btn-primary btn-sm">Download Raw</a>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+{% if is_redacted %}
+<div class="alert alert-info py-2 mb-3 small">
+  <strong>Masked Preview:</strong> Sensitive numbers, payment cards, and credentials have been automatically masked for your clearance level.
+</div>
+{% endif %}
+
+<div class="watermark-container mb-3">
+  <div class="watermark-overlay" aria-hidden="true">
+    {% for _ in range(16) %}
+    <div class="watermark-item">{{ watermark_text }}</div>
+    {% endfor %}
+  </div>
+
+  {% if image_src %}
+  <div class="text-center">
+    <img src="{{ image_src }}" alt="Secure preview" class="preview-img">
+  </div>
+  {% else %}
+  <pre class="preview-content mb-0">{{ content_display }}</pre>
+  {% endif %}
+</div>
+
+<div class="text-muted small text-center">
+  Secure preview &bull; Monitored viewing session for <code>{{ current_user.username }}</code>
+</div>
+{% endblock %}

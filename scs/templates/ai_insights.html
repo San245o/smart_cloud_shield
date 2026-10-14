@@ -1,0 +1,287 @@
+{% extends "base.html" %}
+{% block title %}AI Threat Intelligence{% endblock %}
+{% block body %}
+<!-- Page Header -->
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+  <div>
+    <h1 class="h4 mb-0 fw-bold">AI Threat Intelligence Hub</h1>
+    <div class="small text-muted">Automated log intelligence, posture evaluation, and incident forensics</div>
+  </div>
+  <div class="d-flex flex-wrap gap-2 align-items-center">
+    {% if has_gemini %}
+      <span class="chip chip-ok">Live Gemini ({{ model_name }})</span>
+    {% else %}
+      <span class="chip chip-muted">Local NLP Engine</span>
+    {% endif %}
+    {% if smtp_configured %}
+      <span class="chip chip-ok">SMTP Active</span>
+    {% else %}
+      <span class="chip chip-muted">Dev Outbox</span>
+    {% endif %}
+    <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary btn-sm">&larr; Dashboard</a>
+  </div>
+</div>
+
+<!-- Controls Card -->
+<div class="panel mb-4">
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+    <div class="d-flex align-items-center gap-2">
+      <span class="small fw-semibold text-muted text-uppercase">Time Window:</span>
+      <div class="btn-group btn-group-sm" role="group" id="windowBtnGroup">
+        <button type="button" class="btn btn-outline-secondary" data-hours="6">6 Hours</button>
+        <button type="button" class="btn btn-primary active" data-hours="24">24 Hours</button>
+        <button type="button" class="btn btn-outline-secondary" data-hours="72">72 Hours</button>
+        <button type="button" class="btn btn-outline-secondary" data-hours="168">7 Days</button>
+      </div>
+    </div>
+    <div class="d-flex gap-2">
+      <button id="btnGenerateSummary" class="btn btn-primary btn-sm d-flex align-items-center gap-1">
+        <span id="genSpinner" class="spinner-border spinner-border-sm d-none" role="status"></span>
+        <span id="genBtnText">Generate Summary</span>
+      </button>
+      <button id="btnCopyReport" class="btn btn-outline-secondary btn-sm" disabled>Copy Markdown</button>
+      <button id="btnDownloadReport" class="btn btn-outline-secondary btn-sm" disabled>Download</button>
+    </div>
+  </div>
+</div>
+
+<!-- Posture Metric Cards -->
+<div class="row g-3 mb-4" id="postureRow" style="display: none;">
+  <div class="col-md-4">
+    <div class="panel h-100 d-flex flex-column justify-content-center">
+      <div class="text-muted small text-uppercase fw-semibold mb-1">Security Posture Score</div>
+      <div class="d-flex align-items-baseline gap-2">
+        <span class="display-6 fw-bold" id="postureScore">--</span>
+        <span class="text-muted fs-5">/ 100</span>
+        <span class="chip chip-ok ms-auto" id="postureGrade">--</span>
+      </div>
+      <div class="small text-muted mt-2" id="postureStatus">Evaluating posture...</div>
+    </div>
+  </div>
+  <div class="col-md-8">
+    <div class="panel h-100">
+      <div class="text-muted small text-uppercase fw-semibold mb-2">Analysis Engine & Timestamp</div>
+      <div class="row g-2 small">
+        <div class="col-sm-6">
+          <div class="p-2 border rounded bg-light">
+            <span class="text-muted d-block">Engine:</span>
+            <strong id="metaEngine">--</strong>
+          </div>
+        </div>
+        <div class="col-sm-6">
+          <div class="p-2 border rounded bg-light">
+            <span class="text-muted d-block">Generated:</span>
+            <strong id="metaTimestamp">--</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Summary Content Area -->
+<div class="panel mb-4">
+  <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
+    <h2 class="h6 mb-0 fw-bold">Telemetry Summary</h2>
+    <span id="reportStatusBadge" class="chip chip-muted">Awaiting Generation</span>
+  </div>
+
+  <div id="aiLoading" class="text-center py-5 d-none">
+    <div class="spinner-border spinner-border-sm text-primary mb-2" role="status"></div>
+    <div class="fw-semibold small">Synthesizing logs and assessing download patterns...</div>
+  </div>
+
+  <div id="aiEmptyState" class="text-center py-5 text-muted">
+    <div class="fw-semibold mb-1">No AI Summary Generated Yet</div>
+    <p class="small text-muted mb-3">Click <strong>"Generate Summary"</strong> above to inspect recent activity.</p>
+    <button class="btn btn-outline-secondary btn-sm" onclick="document.getElementById('btnGenerateSummary').click()">Generate Now</button>
+  </div>
+
+  <div id="aiReportBox" class="d-none">
+    <div id="aiReportContent" class="p-3 bg-light rounded border" style="font-size: 0.875rem; line-height: 1.6;"></div>
+  </div>
+</div>
+
+<!-- Incident Forensics Tool -->
+<div class="panel">
+  <div class="d-flex justify-content-between align-items-center mb-2">
+    <h2 class="h6 mb-0 fw-bold">Incident Deep Dive</h2>
+    <a href="{{ url_for('incidents') }}" class="btn btn-outline-secondary btn-sm">All Incidents &rarr;</a>
+  </div>
+  <p class="small text-muted mb-3">Enter an incident ID to produce an automated explanation of the user's action and why it was flagged.</p>
+  
+  <div class="input-group input-group-sm mb-3" style="max-width: 360px;">
+    <span class="input-group-text">Incident #</span>
+    <input type="number" id="incidentIdInput" class="form-control" placeholder="e.g. 1" min="1">
+    <button id="btnAnalyzeIncident" class="btn btn-primary">Analyze</button>
+  </div>
+
+  <div id="incidentLoading" class="text-center py-3 d-none">
+    <div class="spinner-border spinner-border-sm text-primary mb-2"></div>
+    <div class="small text-muted">Deconstructing incident telemetry...</div>
+  </div>
+
+  <div id="incidentResult" class="d-none p-3 bg-light rounded border small">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <strong id="incidentResultTitle" class="text-dark">Incident Analysis</strong>
+      <span id="incidentEngineBadge" class="chip chip-muted">--</span>
+    </div>
+    <div id="incidentResultBody" style="line-height: 1.6;"></div>
+  </div>
+</div>
+
+<script>
+(function() {
+  let currentHours = 24;
+  let lastReportMarkdown = "";
+
+  const $ = (id) => document.getElementById(id);
+
+  function renderMarkdown(md) {
+    if (!md) return "";
+    let html = md
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      .replace(/^### (.*$)/gim, '<h6 class="mt-3 mb-1 fw-bold">$1</h6>')
+      .replace(/^## (.*$)/gim, '<h5 class="mt-3 mb-1 fw-bold">$1</h5>')
+      .replace(/^# (.*$)/gim, '<h5 class="mt-3 mb-1 fw-bold">$1</h5>')
+      .replace(/\*\*(.*?)\*\*/gim, '<strong>$1</strong>')
+      .replace(/`([^`]+)`/gim, '<code class="px-1 bg-white border rounded">$1</code>')
+      .replace(/^---$/gim, '<hr class="my-2">')
+      .replace(/^\s*\*\s+(.*$)/gim, '<li>$1</li>')
+      .replace(/^\s*-\s+(.*$)/gim, '<li>$1</li>')
+      .replace(/^\s*\d+\.\s+(.*$)/gim, '<li>$1</li>');
+
+    html = html.replace(/(<li>.*<\/li>)/gms, '<ul class="mb-2 ps-3">$1</ul>');
+    html = html.replace(/<\/ul>\s*<ul>/g, '');
+    html = html.replace(/\n\n/g, '<p class="mb-2"></p>');
+    return html;
+  }
+
+  const windowButtons = $("windowBtnGroup").querySelectorAll("button");
+  windowButtons.forEach(btn => {
+    btn.addEventListener("click", () => {
+      windowButtons.forEach(b => { b.classList.remove("btn-primary", "active"); b.classList.add("btn-outline-secondary"); });
+      btn.classList.remove("btn-outline-secondary");
+      btn.classList.add("btn-primary", "active");
+      currentHours = parseInt(btn.getAttribute("data-hours"), 10);
+    });
+  });
+
+  $("btnGenerateSummary").addEventListener("click", async () => {
+    $("aiEmptyState").classList.add("d-none");
+    $("aiReportBox").classList.add("d-none");
+    $("aiLoading").classList.remove("d-none");
+    $("genSpinner").classList.remove("d-none");
+    $("genBtnText").textContent = "Analyzing...";
+    $("btnGenerateSummary").disabled = true;
+
+    try {
+      const res = await fetch("/api/admin/ai-summary?hours=" + currentHours, {
+        headers: { "Accept": "application/json" }
+      });
+      if (!res.ok) {
+        if (res.status === 401 || res.status === 403) {
+          alert("Session expired or administrator privileges required. Please sign in as admin.");
+          window.location.href = "/login";
+          return;
+        }
+        const errText = await res.text();
+        throw new Error(`HTTP ${res.status}: ${errText.slice(0, 100)}`);
+      }
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || "Failed");
+
+      lastReportMarkdown = data.content;
+      $("aiReportContent").innerHTML = renderMarkdown(data.content);
+      $("aiLoading").classList.add("d-none");
+      $("aiReportBox").classList.remove("d-none");
+
+      if (data.posture) {
+        $("postureRow").style.display = "flex";
+        $("postureScore").textContent = data.posture.score;
+        $("postureGrade").textContent = data.posture.grade;
+        $("postureGrade").className = "chip chip-" + (data.posture.badge_class === "success" ? "ok" : "warn");
+        $("postureStatus").textContent = data.posture.status;
+      }
+
+      $("metaEngine").textContent = (data.source === "gemini" ? "Google Gemini (" + data.model + ")" : "Local NLP Engine");
+      $("metaTimestamp").textContent = data.timestamp || new Date().toISOString();
+      $("reportStatusBadge").textContent = (data.source === "gemini" ? "Gemini Live" : "Local Engine");
+      $("reportStatusBadge").className = "chip chip-" + (data.source === "gemini" ? "ok" : "muted");
+
+      $("btnCopyReport").disabled = false;
+      $("btnDownloadReport").disabled = false;
+    } catch (err) {
+      $("aiLoading").classList.add("d-none");
+      $("aiEmptyState").classList.remove("d-none");
+      alert("Error generating summary: " + err.message);
+    } finally {
+      $("genSpinner").classList.add("d-none");
+      $("genBtnText").textContent = "Generate Summary";
+      $("btnGenerateSummary").disabled = false;
+    }
+  });
+
+  $("btnCopyReport").addEventListener("click", () => {
+    if (!lastReportMarkdown) return;
+    navigator.clipboard.writeText(lastReportMarkdown).then(() => {
+      const prev = $("btnCopyReport").textContent;
+      $("btnCopyReport").textContent = "Copied!";
+      setTimeout(() => { $("btnCopyReport").textContent = prev; }, 2000);
+    });
+  });
+
+  $("btnDownloadReport").addEventListener("click", () => {
+    if (!lastReportMarkdown) return;
+    const blob = new Blob([lastReportMarkdown], { type: "text/markdown;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `Security_Report_${currentHours}h_${new Date().toISOString().slice(0, 10)}.md`;
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+
+  $("btnAnalyzeIncident").addEventListener("click", async () => {
+    const iid = $("incidentIdInput").value.trim();
+    if (!iid) {
+      alert("Please enter a valid Incident ID.");
+      return;
+    }
+    $("incidentResult").classList.add("d-none");
+    $("incidentLoading").classList.remove("d-none");
+    $("btnAnalyzeIncident").disabled = true;
+
+    try {
+      const res = await fetch(`/api/admin/ai-incident/${iid}`, {
+        headers: { "Accept": "application/json" }
+      });
+      if (!res.ok) {
+        if (res.status === 401 || res.status === 403) {
+          alert("Session expired. Please sign in as admin.");
+          window.location.href = "/login";
+          return;
+        }
+        const errText = await res.text();
+        throw new Error(`HTTP ${res.status}: ${errText.slice(0, 100)}`);
+      }
+      const data = await res.json();
+      
+      $("incidentResultTitle").textContent = `Incident #${iid} Analysis`;
+      $("incidentEngineBadge").textContent = data.source === "gemini" ? "Gemini Live" : "Local Engine";
+      $("incidentEngineBadge").className = "chip chip-" + (data.source === "gemini" ? "ok" : "muted");
+      $("incidentResultBody").innerHTML = renderMarkdown(data.analysis);
+      $("incidentResult").classList.remove("d-none");
+    } catch (e) {
+      alert(e.message);
+    } finally {
+      $("incidentLoading").classList.add("d-none");
+      $("btnAnalyzeIncident").disabled = false;
+    }
+  });
+
+  // Generate on load
+  $("btnGenerateSummary").click();
+})();
+</script>
+{% endblock %}

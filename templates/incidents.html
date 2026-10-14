@@ -1,0 +1,207 @@
+{% extends "base.html" %}
+{% block title %}Incidents{% endblock %}
+{% block body %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+  <div>
+    <h1 class="h4 mb-0 fw-bold">Security Incidents</h1>
+    <div class="small text-muted">Flagged download attempts, risk violations, and anomalous activity</div>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('ai_insights') }}" class="btn btn-outline-secondary btn-sm">AI Insights</a>
+    <a href="{{ url_for('dashboard') }}" class="btn btn-primary btn-sm">Dashboard</a>
+  </div>
+</div>
+
+<div class="panel">
+  {% if rows %}
+  <div class="table-responsive">
+    <table class="table t mb-0">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Time</th>
+          <th>User</th>
+          <th>File</th>
+          <th>Decision</th>
+          <th>Risk</th>
+          <th>Reasons</th>
+          <th>Status</th>
+          <th class="text-end">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for i in rows %}
+        <tr>
+          <td><span class="text-muted">#{{ i.id }}</span></td>
+          <td class="text-nowrap text-muted" style="font-size: 0.8rem;">{{ i.ts.strftime('%m-%d %H:%M:%S') }}</td>
+          <td>
+            <strong>{{ i.user.username if i.user else '-' }}</strong>
+            {% if i.user and i.user.status == 'restricted' %}
+              <span class="chip chip-bad ms-1" style="font-size: 0.65rem;">Restricted</span>
+            {% endif %}
+          </td>
+          <td>
+            <span class="text-dark">{{ i.file.original_name if i.file else '(deleted)' }}</span>
+            {% if i.file and i.file.is_quarantined %}
+              <span class="chip chip-warn ms-1" style="font-size: 0.65rem;">Quarantined</span>
+            {% endif %}
+          </td>
+          <td>
+            <span class="chip badge-{{ 'blocked' if i.level == 'block' else 'warned' }}">
+              {{ i.level|upper }}
+            </span>
+          </td>
+          <td class="score">{{ i.risk_score }}</td>
+          <td>
+            <details>
+              <summary>View reasons ({{ i.reasons|length }})</summary>
+              <ul class="reasons">
+                {% for r in i.reasons %}
+                <li>+{{ r.points }} {{ r.text }}</li>
+                {% endfor %}
+              </ul>
+            </details>
+          </td>
+          <td>
+            <span class="chip chip-{{ 'muted' if i.status == 'resolved' else ('warn' if i.status == 'false_positive' else 'bad') }}">
+              {{ i.status.replace('_',' ')|capitalize }}
+            </span>
+          </td>
+          <td class="text-end text-nowrap">
+            <button type="button" class="btn btn-sm btn-outline-primary me-1 btn-ai-dive" data-iid="{{ i.id }}" title="Generate AI incident analysis">
+              AI Explain
+            </button>
+
+            {% if i.status == 'open' %}
+            <form class="d-inline" method="post" action="{{ url_for('resolve_incident', iid=i.id) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button class="btn btn-sm btn-outline-secondary me-1" name="as" value="resolved">Resolve</button>
+              <button class="btn btn-sm btn-outline-secondary me-1" name="as" value="false_positive">False alarm</button>
+              {% if i.user and i.user.status != 'restricted' %}
+              <button class="btn btn-sm btn-outline-danger me-1" name="as" value="lock_user">Lock user</button>
+              {% endif %}
+              {% if i.file %}
+                {% if not i.file.is_quarantined %}
+                <button class="btn btn-sm btn-outline-secondary me-1" name="as" value="quarantine_file">Quarantine</button>
+                {% else %}
+                <button class="btn btn-sm btn-outline-secondary me-1" name="as" value="unquarantine_file">Release</button>
+                {% endif %}
+              {% endif %}
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="text-muted mb-0 py-3 text-center">No security incidents recorded. Any blocked or warned attempts will appear here.</p>
+  {% endif %}
+</div>
+
+<!-- Modal Dialog for AI Forensic Incident Deep Dive -->
+<div id="aiModal" class="ai-modal-backdrop d-none">
+  <div class="ai-modal-dialog">
+    <div class="ai-modal-content">
+      <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
+        <h5 class="h6 mb-0 fw-bold" id="aiModalTitle">AI Incident Analysis</h5>
+        <button type="button" class="btn-close" id="btnModalClose" aria-label="Close"></button>
+      </div>
+      <div id="aiModalLoading" class="text-center py-4">
+        <div class="spinner-border spinner-border-sm text-primary mb-2" role="status"></div>
+        <div class="small text-muted">Analyzing incident context, behavioral data & root cause...</div>
+      </div>
+      <div id="aiModalBody" class="d-none small">
+        <div id="aiModalText" class="p-3 bg-light rounded border mb-3" style="max-height: 440px; overflow-y: auto; font-size: 0.875rem; line-height: 1.6;"></div>
+      </div>
+      <div class="d-flex justify-content-end border-top pt-2">
+        <button type="button" class="btn btn-outline-secondary btn-sm" id="btnModalCloseBottom">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.ai-modal-backdrop {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(15, 23, 42, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1050;
+  padding: 1rem;
+}
+.ai-modal-dialog {
+  width: 100%;
+  max-width: 640px;
+}
+.ai-modal-content {
+  background: #ffffff;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  padding: 1.5rem;
+}
+</style>
+
+<script>
+(function() {
+  const modal = document.getElementById("aiModal");
+  const modalTitle = document.getElementById("aiModalTitle");
+  const modalLoading = document.getElementById("aiModalLoading");
+  const modalBody = document.getElementById("aiModalBody");
+  const modalText = document.getElementById("aiModalText");
+
+  function renderSimpleMd(md) {
+    if (!md) return "";
+    return md
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      .replace(/^##### (.*$)/gim, '<h6 class="mt-2 mb-1 fw-bold text-dark">$1</h6>')
+      .replace(/^#### (.*$)/gim, '<h6 class="mt-2 mb-1 fw-bold text-dark">$1</h6>')
+      .replace(/^### (.*$)/gim, '<h6 class="mt-2 mb-1 fw-bold text-dark">$1</h6>')
+      .replace(/\*\*(.*?)\*\*/gim, '<strong>$1</strong>')
+      .replace(/`([^`]+)`/gim, '<code class="px-1 bg-white border rounded">$1</code>')
+      .replace(/^\s*\*\s+(.*$)/gim, '<li>$1</li>')
+      .replace(/^\s*-\s+(.*$)/gim, '<li>$1</li>')
+      .replace(/(<li>.*<\/li>)/gms, '<ul class="mb-2 ps-3">$1</ul>')
+      .replace(/<\/ul>\s*<ul class="mb-2 ps-3">/g, '')
+      .replace(/\n\n/g, '<p class="mb-2"></p>');
+  }
+
+  function closeModal() {
+    modal.classList.add("d-none");
+  }
+
+  document.getElementById("btnModalClose").addEventListener("click", closeModal);
+  document.getElementById("btnModalCloseBottom").addEventListener("click", closeModal);
+  modal.addEventListener("click", (e) => {
+    if (e.target === modal) closeModal();
+  });
+
+  document.querySelectorAll(".btn-ai-dive").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const iid = btn.getAttribute("data-iid");
+      modalTitle.textContent = `AI Incident Analysis — Incident #${iid}`;
+      modalLoading.classList.remove("d-none");
+      modalBody.classList.add("d-none");
+      modal.classList.remove("d-none");
+
+      try {
+        const res = await fetch(`/api/admin/ai-incident/${iid}`, { method: "POST" });
+        if (!res.ok) throw new Error("Could not fetch incident analysis");
+        const data = await res.json();
+        modalText.innerHTML = renderSimpleMd(data.analysis);
+        modalLoading.classList.add("d-none");
+        modalBody.classList.remove("d-none");
+      } catch (err) {
+        modalText.innerHTML = `<div class="alert alert-danger mb-0">Error: ${err.message}</div>`;
+        modalLoading.classList.add("d-none");
+        modalBody.classList.remove("d-none");
+      }
+    });
+  });
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block title %}Files{% endblock %}
+{% block body %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+  <div>
+    <h1 class="h4 mb-0 fw-bold">Cloud File Vault</h1>
+    <div class="small text-muted">All uploaded files are scanned for sensitive patterns and encrypted at rest</div>
+  </div>
+</div>
+
+{% if can_upload %}
+<div class="panel mb-4">
+  <h2 class="h6 fw-bold mb-3">Upload Document</h2>
+  <form method="post" action="{{ url_for('upload') }}" enctype="multipart/form-data" class="row g-2 align-items-end">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="col-md-8">
+      <label class="form-label small" for="f">Select file (PDF, TXT, CSV, DOCX, XLSX, Images &bull; max 10 MB)</label>
+      <input id="f" class="form-control" type="file" name="file" required>
+    </div>
+    <div class="col-md-4">
+      <button class="btn btn-primary w-100">Upload & Encrypt</button>
+    </div>
+  </form>
+</div>
+{% endif %}
+
+<div class="panel">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="h6 fw-bold mb-0">Documents</h2>
+    <span class="small text-muted">{{ files|length }} file{{ 's' if files|length != 1 else '' }} stored</span>
+  </div>
+
+  {% if files %}
+  <div class="table-responsive">
+    <table class="table t mb-0">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Department</th>
+          <th>Sensitivity</th>
+          <th>Size</th>
+          <th>Owner</th>
+          <th class="text-end">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for f in files %}
+        <tr>
+          <td>
+            <div class="fw-semibold text-dark">{{ f.original_name }}</div>
+            <div class="d-flex gap-1 mt-1">
+              {% if f.is_deduplicated %}
+              <span class="chip chip-dedup" style="font-size: 0.7rem; padding: 1px 6px;">Dedup</span>
+              {% endif %}
+              {% if f.is_quarantined %}
+              <span class="chip chip-quarantined" style="font-size: 0.7rem; padding: 1px 6px;">QUARANTINED</span>
+              {% endif %}
+            </div>
+          </td>
+          <td><span class="text-secondary">{{ f.department|capitalize }}</span></td>
+          <td>
+            <span class="chip sens-{{ f.sensitivity }}">{{ f.sensitivity.replace('_', ' ')|capitalize }}</span>
+          </td>
+          <td class="text-muted">{{ (f.size / 1024)|round(1) }} KB</td>
+          <td class="text-secondary">{{ f.owner.username if f.owner else '-' }}</td>
+          <td class="text-end text-nowrap">
+            {% if f.is_quarantined %}
+              <span class="chip chip-bad me-2">Access Locked</span>
+            {% else %}
+              <a class="btn btn-sm btn-outline-secondary me-1" href="{{ url_for('preview', fid=f.id) }}">Preview</a>
+              {% if check(f) %}
+                <a class="btn btn-sm btn-primary me-1" href="{{ url_for('download', fid=f.id) }}">Download</a>
+                {% if f.sensitivity in ('confidential', 'highly_confidential') %}
+                <a class="btn btn-sm btn-outline-secondary me-1" href="{{ url_for('download', fid=f.id, mode='redacted') }}" title="Download with sensitive values masked">Masked Copy</a>
+                {% endif %}
+              {% else %}
+                {% if f.sensitivity in ('confidential', 'highly_confidential') and current_user.role != 'guest' and current_user.status != 'restricted' %}
+                <a class="btn btn-sm btn-outline-secondary me-1" href="{{ url_for('download', fid=f.id, mode='redacted') }}" title="No clearance for raw file; download safe redacted copy">Masked Copy</a>
+                {% else %}
+                <span class="text-muted small me-2">No clearance</span>
+                {% endif %}
+              {% endif %}
+            {% endif %}
+
+            {% if current_user.role == 'admin' %}
+            <form class="d-inline" method="post" action="{{ url_for('quarantine_file', fid=f.id) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button class="btn btn-sm btn-outline-secondary me-1">
+                {{ 'Release' if f.is_quarantined else 'Quarantine' }}
+              </button>
+            </form>
+            {% endif %}
+
+            {% if f.owner_id == current_user.id or current_user.role == 'admin' %}
+            <form class="d-inline" method="post" action="{{ url_for('delete', fid=f.id) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button class="btn btn-sm btn-link text-danger p-0 ms-1 text-decoration-none" onclick="return confirm('Delete this file?')">Delete</button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="text-muted mb-0 py-3 text-center">No files uploaded yet. Select a file above to scan and store it.</p>
+  {% endif %}
+</div>
+{% endblock %}

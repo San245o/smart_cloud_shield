@@ -1,0 +1,7 @@
+client_id,full_name,pan_card,aadhaar_number,credit_card,salary_inr,email,phone
+101,Rajesh Sharma,ABCPD1001E,2345 6789 0124,4111 1111 1111 1111,185000,rajesh.sharma@example.com,+91 98765 43210
+102,Priya Patel,ABCPD1002E,2345 6789 0137,5500 0000 0000 0004,210000,priya.patel@example.com,+91 98765 43211
+103,Amit Verma,ABCPD1003E,2345 6789 0148,3714 4963 5398 431,145000,amit.verma@example.com,+91 98765 43212
+104,Sneha Kulkarni,ABCPD1004E,2345 6789 0153,6011 0000 0000 0004,320000,sneha.kulkarni@example.com,+91 98765 43213
+105,Vikram Singh,ABCPD1005E,2345 6789 0161,4111 1111 1111 1111,195000,vikram.singh@example.com,+91 98765 43214
+# CONFIDENTIAL payroll and financial records - do not distribute

@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Register{% endblock %}
+{% block body %}
+<div class="auth panel">
+  <div class="mb-4">
+    <h1 class="h5 fw-bold mb-1">Create Account</h1>
+    <p class="text-muted small mb-0">Register for a new CloudShield user account.</p>
+  </div>
+
+  <form method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="mb-3">
+      <label class="form-label" for="u">Username</label>
+      <input id="u" class="form-control" name="username" required autofocus>
+    </div>
+    <div class="mb-3">
+      <label class="form-label" for="e">Email Address</label>
+      <input id="e" class="form-control" type="email" name="email" placeholder="user@company.com" required>
+    </div>
+    <div class="mb-3">
+      <label class="form-label" for="p">Password</label>
+      <input id="p" class="form-control" type="password" name="password" required>
+      <div class="form-text small text-muted">Minimum 8 characters with letters and numbers.</div>
+    </div>
+    <div class="mb-3">
+      <label class="form-label" for="d">Department</label>
+      <input id="d" class="form-control" name="department" placeholder="finance, hr, engineering" required>
+    </div>
+    <div class="mb-3">
+      <label class="form-label" for="r">Role</label>
+      <select id="r" class="form-select" name="role">
+        <option value="employee">Employee</option>
+        <option value="guest">Guest (Read only)</option>
+      </select>
+    </div>
+    <button class="btn btn-primary w-100 py-2">Create Account</button>
+  </form>
+
+  <p class="mt-4 mb-0 text-center text-muted small border-top pt-3">
+    Already have an account? <a href="{{ url_for('login') }}" class="text-decoration-none">Sign In</a>
+  </p>
+</div>
+{% endblock %}

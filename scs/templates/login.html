@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Sign In{% endblock %}
+{% block body %}
+<div class="auth panel">
+  <div class="mb-4">
+    <h1 class="h5 fw-bold mb-1">Sign In</h1>
+    <p class="text-muted small mb-0">Enter your credentials to access the file vault.</p>
+  </div>
+
+  <form method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="mb-3">
+      <label class="form-label" for="u">Username</label>
+      <input id="u" class="form-control" name="username" placeholder="e.g. alice, bob, admin" required autofocus>
+    </div>
+    <div class="mb-3">
+      <label class="form-label" for="p">Password</label>
+      <input id="p" class="form-control" type="password" name="password" required>
+    </div>
+    <button class="btn btn-primary w-100 py-2">Continue</button>
+  </form>
+
+  <div class="mt-4 pt-3 border-top text-center">
+    <div class="text-muted small mb-2">Demo password: <code>Pass@12345</code></div>
+    <p class="mb-0 text-muted small">Need an account? <a href="{{ url_for('register') }}" class="text-decoration-none">Register</a></p>
+  </div>
+</div>
+{% endblock %}

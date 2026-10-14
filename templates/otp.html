@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Verification{% endblock %}
+{% block body %}
+<div class="auth panel">
+  <div class="text-center mb-4">
+    <div class="d-inline-flex align-items-center justify-content-center bg-light border rounded-circle mb-3" style="width: 48px; height: 48px;">
+      <span style="font-size: 1.3rem;">📬</span>
+    </div>
+    <h1 class="h5 fw-bold mb-1">Two-Factor Authentication</h1>
+    <p class="text-muted small mb-0">Enter the 6-digit verification code sent to</p>
+    <div class="fw-semibold text-dark small mt-1">{{ user.email }}</div>
+  </div>
+
+  <form method="post" id="otp-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="mb-3">
+      <div class="d-flex justify-content-between align-items-center mb-1">
+        <label class="form-label small fw-semibold text-muted text-uppercase mb-0" for="c">Passcode</label>
+        <span class="small text-muted" id="otp-timer">Expires in: <strong id="time-left">05:00</strong></span>
+      </div>
+      <input id="c" class="form-control text-center font-monospace fw-bold fs-4 py-2"
+             name="code" inputmode="numeric" maxlength="6" pattern="[0-9]{6}"
+             placeholder="••••••" style="letter-spacing: 0.25em;"
+             required autofocus autocomplete="one-time-code">
+    </div>
+    <button class="btn btn-primary w-100 py-2" type="submit">Verify & Sign In</button>
+  </form>
+
+  <div class="mt-4 pt-3 border-top text-center">
+    <a href="{{ url_for('login') }}" class="small text-muted text-decoration-none">&larr; Back to login</a>
+  </div>
+</div>
+
+<script>
+  let secondsLeft = 300;
+  const timerElem = document.getElementById('time-left');
+  if (timerElem) {
+    const timerInterval = setInterval(function() {
+      secondsLeft--;
+      if (secondsLeft <= 0) {
+        clearInterval(timerInterval);
+        timerElem.innerText = "Expired";
+        timerElem.classList.add("text-danger");
+      } else {
+        const m = String(Math.floor(secondsLeft / 60)).padStart(2, '0');
+        const s = String(secondsLeft % 60).padStart(2, '0');
+        timerElem.innerText = `${m}:${s}`;
+      }
+    }, 1000);
+  }
+</script>
+{% endblock %}

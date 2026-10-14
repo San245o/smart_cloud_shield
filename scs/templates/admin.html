@@ -1,0 +1,464 @@
+{% extends "base.html" %}{% block title %}Dashboard{% endblock %}
+{% block body %}
+<!-- Top Header -->
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+  <div>
+    <h1 class="h4 mb-0 fw-bold">Security Dashboard</h1>
+    <div class="small text-muted">Live telemetry and download risk assessment</div>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('incidents') }}" class="btn btn-outline-secondary btn-sm">Incidents</a>
+    <a href="{{ url_for('ai_insights') }}" class="btn btn-primary btn-sm">AI Insights Hub</a>
+  </div>
+</div>
+
+<!-- Primary Stats -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="panel stat ok">
+      <div class="n" id="n-allowed">0</div>
+      <div class="l">Allowed Downloads</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="panel stat warn">
+      <div class="n" id="n-warned">0</div>
+      <div class="l">Warned Requests</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="panel stat bad">
+      <div class="n" id="n-blocked">0</div>
+      <div class="l">Blocked Exfiltrations</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="panel stat mid">
+      <div class="n" id="n-incidents">0</div>
+      <div class="l">Open Incidents</div>
+    </div>
+  </div>
+</div>
+
+<!-- AI Briefing & Notification Row -->
+<div class="row g-3 mb-4">
+  <!-- AI Summary Card -->
+  <div class="col-lg-7">
+    <div class="panel h-100">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <h2 class="h6 mb-0 fw-bold">AI Threat Summary</h2>
+        <span id="dashAiEngineBadge" class="chip chip-muted">Checking AI...</span>
+      </div>
+      <p class="small text-muted mb-3">
+        Automated synthesis of recent file events, behavioral anomalies, and policy triggers.
+      </p>
+
+      <div class="d-flex gap-2 mb-3">
+        <button id="btnDashGenAi" class="btn btn-primary btn-sm d-flex align-items-center gap-1">
+          <span id="dashAiSpinner" class="spinner-border spinner-border-sm d-none"></span>
+          <span>Generate 24h Summary</span>
+        </button>
+        <a href="{{ url_for('ai_insights') }}" class="btn btn-outline-secondary btn-sm">Open AI Hub &rarr;</a>
+      </div>
+
+      <!-- Quick AI Preview Box -->
+      <div id="dashAiResultBox" class="border rounded p-3 bg-light d-none small" style="max-height: 240px; overflow-y: auto;">
+        <div class="d-flex justify-content-between align-items-center mb-2 pb-1 border-bottom">
+          <strong id="dashAiPostureTitle">Security Posture</strong>
+          <span id="dashAiPostureBadge" class="chip chip-ok">Optimal</span>
+        </div>
+        <div id="dashAiContent" style="font-size: 0.85rem; line-height: 1.5;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Email Alerts Card -->
+  <div class="col-lg-5">
+    <div class="panel h-100">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <h2 class="h6 mb-0 fw-bold">Alert Dispatches</h2>
+        <span id="dashSmtpBadge" class="chip chip-muted">Checking SMTP...</span>
+      </div>
+      <p class="small text-muted mb-3">
+        Sends MFA codes, high-risk incident alerts, and account lock warnings.
+      </p>
+
+      <div class="mb-3">
+        <label for="testEmailInput" class="form-label small text-muted">Test Dispatch Delivery:</label>
+        <div class="input-group input-group-sm">
+          <input type="email" id="testEmailInput" class="form-control" placeholder="admin@domain.com" value="{{ current_user.email }}">
+          <button id="btnSendTestEmail" class="btn btn-outline-secondary">Send Test</button>
+        </div>
+        <div id="emailTestFeedback" class="small mt-2 d-none"></div>
+      </div>
+
+      <div class="d-flex justify-content-between align-items-center border-top pt-2">
+        <button id="btnViewOutbox" class="btn btn-sm btn-link p-0 text-decoration-none text-muted" type="button">
+          Recent dispatches &darr;
+        </button>
+        <span class="small text-muted" id="outboxCountText">0 recent</span>
+      </div>
+
+      <div id="outboxDrawer" class="border rounded p-2 bg-light mt-2 d-none small" style="max-height: 160px; overflow-y: auto;">
+        <div id="outboxList"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Charts Row -->
+<div class="row g-3 mb-4">
+  <div class="col-md-5">
+    <div class="panel h-100">
+      <h2 class="h6 fw-bold mb-3">Download Outcomes</h2>
+      <div class="chartbox"><canvas id="outcomeChart"></canvas></div>
+    </div>
+  </div>
+  <div class="col-md-7">
+    <div class="panel h-100">
+      <h2 class="h6 fw-bold mb-3">Risk Trend (0 to 100)</h2>
+      <div class="chartbox"><canvas id="riskChart"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<!-- Recent Activity Table -->
+<div class="panel mb-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="h6 fw-bold mb-0">Recent Downloads</h2>
+    <span class="small text-muted">Auto-refreshes every 5s</span>
+  </div>
+  <div class="table-responsive">
+    <table class="table t mb-0">
+      <thead>
+        <tr>
+          <th>Time</th>
+          <th>User</th>
+          <th>File</th>
+          <th>Outcome</th>
+          <th>Risk</th>
+          <th>Reasons</th>
+        </tr>
+      </thead>
+      <tbody id="feed"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Collapsible Cryptographic Engine & Benchmarks Panel -->
+<div class="panel">
+  <details>
+    <summary class="fw-semibold text-secondary d-flex align-items-center justify-content-between">
+      <span>Key Management & Cryptographic Diagnostics</span>
+      <span class="badge bg-light text-muted border">Expand Diagnostics</span>
+    </summary>
+    <div class="pt-3 mt-2 border-top">
+      <div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
+        <div class="small text-muted">
+          Per-file data keys wrapped with Master Key Encryption Key (KEK).
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          <span class="chip chip-ok" id="cryptoArchBadge">AES-128-CBC + HMAC</span>
+          <span class="chip chip-muted" id="cryptoKekBadge">KEK: Active</span>
+          <button id="btnRunCryptoBench" class="btn btn-outline-secondary btn-sm">
+            <span id="cryptoBenchSpinner" class="spinner-border spinner-border-sm d-none"></span>
+            <span>Run Benchmark</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="row g-2 mb-3 text-center">
+        <div class="col-6 col-md-3">
+          <div class="border rounded p-2 bg-light">
+            <div class="small text-muted">Encrypt Latency</div>
+            <div class="fw-bold" id="statEncLatency">-- ms</div>
+            <div class="small text-muted" id="statEncSpeed">-- MB/s</div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="border rounded p-2 bg-light">
+            <div class="small text-muted">Decrypt Latency</div>
+            <div class="fw-bold" id="statDecLatency">-- ms</div>
+            <div class="small text-muted" id="statDecSpeed">-- MB/s</div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="border rounded p-2 bg-light">
+            <div class="small text-muted">Tamper Test</div>
+            <div class="fw-bold text-success" id="statTamperStatus">Verified Pass</div>
+            <div class="small text-muted">Bit corruption check</div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="border rounded p-2 bg-light">
+            <div class="small text-muted">Master Key Fingerprint</div>
+            <div class="fw-bold text-truncate mono-font" style="font-size: 0.8rem;" id="statKekFp">Loading...</div>
+            <div class="small text-muted" id="statKekSource">instance/kek.key</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Compact Sandbox -->
+      <div class="border rounded p-3 bg-light">
+        <div class="fw-semibold small text-muted mb-2 text-uppercase">Interactive Encryption Sandbox:</div>
+        <div class="row g-2">
+          <div class="col-md-6">
+            <textarea id="sandboxPlaintext" class="form-control form-control-sm mono-font" rows="2" placeholder="Text payload...">CONFIDENTIAL_PAYLOAD: user_id=482; clearance=2</textarea>
+            <div class="d-flex gap-2 mt-2">
+              <button id="btnSandboxEncrypt" class="btn btn-primary btn-sm">Encrypt</button>
+              <button id="btnSandboxClear" class="btn btn-outline-secondary btn-sm">Clear</button>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <textarea id="sandboxCiphertext" class="form-control form-control-sm mono-font" rows="2" placeholder="Ciphertext token..."></textarea>
+            <div class="d-flex justify-content-between align-items-center mt-2">
+              <button id="btnSandboxDecrypt" class="btn btn-outline-secondary btn-sm">Decrypt & Verify</button>
+              <span id="sandboxTimingText" class="small text-muted"></span>
+            </div>
+          </div>
+        </div>
+        <div id="sandboxFeedback" class="small mt-2 d-none"></div>
+      </div>
+    </div>
+  </details>
+</div>
+
+<script src="{{ url_for('static', filename='chart.umd.js') }}"></script>
+<script src="{{ url_for('static', filename='dashboard.js') }}"></script>
+
+<script>
+function renderQuickMd(md) {
+  if (!md) return "";
+  return md
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    .replace(/^### (.*$)/gim, '<h6 class="mt-2 mb-1 fw-bold">$1</h6>')
+    .replace(/^## (.*$)/gim, '<h5 class="mt-2 mb-1 fw-bold">$1</h5>')
+    .replace(/\*\*(.*?)\*\*/gim, '<strong>$1</strong>')
+    .replace(/`([^`]+)`/gim, '<code class="px-1 bg-white border rounded">$1</code>')
+    .replace(/^---$/gim, '<hr class="my-2">')
+    .replace(/^\s*\*\s+(.*$)/gim, '<li>$1</li>')
+    .replace(/^\s*-\s+(.*$)/gim, '<li>$1</li>')
+    .replace(/(<li>.*<\/li>)/gms, '<ul class="mb-1 ps-3">$1</ul>')
+    .replace(/<\/ul>\s*<ul class="mb-1 ps-3">/g, '')
+    .replace(/\n\n/g, '<p class="mb-1"></p>');
+}
+
+document.getElementById("btnDashGenAi").addEventListener("click", async () => {
+  const btn = document.getElementById("btnDashGenAi");
+  const spinner = document.getElementById("dashAiSpinner");
+  const box = document.getElementById("dashAiResultBox");
+  const content = document.getElementById("dashAiContent");
+  
+  spinner.classList.remove("d-none");
+  btn.disabled = true;
+
+  try {
+    const res = await fetch("/api/admin/ai-summary?hours=24", {
+      headers: { "Accept": "application/json" }
+    });
+    if (!res.ok) {
+      if (res.status === 401 || res.status === 403) {
+        alert("Session expired. Please sign in as admin.");
+        window.location.href = "/login";
+        return;
+      }
+      const errText = await res.text();
+      throw new Error(`HTTP ${res.status}: ${errText.slice(0, 100)}`);
+    }
+    const d = await res.json();
+    if (!d.success) throw new Error(d.error || "Failed");
+
+    content.innerHTML = renderQuickMd(d.content);
+    if (d.posture) {
+      document.getElementById("dashAiPostureBadge").textContent = `${d.posture.score}/100 (${d.posture.grade})`;
+      document.getElementById("dashAiPostureBadge").className = "chip chip-" + (d.posture.badge_class === "success" ? "ok" : "warn");
+    }
+    box.classList.remove("d-none");
+  } catch (err) {
+    alert("Could not generate summary: " + err.message);
+  } finally {
+    spinner.classList.add("d-none");
+    btn.disabled = false;
+  }
+});
+
+document.getElementById("btnSendTestEmail").addEventListener("click", async () => {
+  const emailInput = document.getElementById("testEmailInput");
+  const btn = document.getElementById("btnSendTestEmail");
+  const feedback = document.getElementById("emailTestFeedback");
+  const email = emailInput.value.trim();
+
+  if (!email || !email.includes("@")) {
+    feedback.className = "small mt-2 alert alert-danger py-1 px-2";
+    feedback.textContent = "Please enter a valid email address.";
+    feedback.classList.remove("d-none");
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = "Sending...";
+  feedback.classList.add("d-none");
+
+  try {
+    const form = new FormData();
+    form.append("email", email);
+    const res = await fetch("/admin/email-test", {
+      method: "POST",
+      headers: { "X-CSRFToken": "{{ csrf_token() }}" },
+      body: form
+    });
+    const data = await res.json();
+    if (data.success) {
+      feedback.className = "small mt-2 alert alert-success py-1 px-2";
+      feedback.textContent = data.message;
+      loadOutbox();
+    } else {
+      feedback.className = "small mt-2 alert alert-danger py-1 px-2";
+      feedback.textContent = "Failed: " + (data.error || "Check mail logs");
+    }
+    feedback.classList.remove("d-none");
+  } catch (err) {
+    feedback.className = "small mt-2 alert alert-danger py-1 px-2";
+    feedback.textContent = "Error: " + err.message;
+    feedback.classList.remove("d-none");
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Send Test";
+  }
+});
+
+async function loadOutbox() {
+  try {
+    const res = await fetch("/api/admin/simulated-emails");
+    const d = await res.json();
+    const emails = d.emails || [];
+    document.getElementById("outboxCountText").textContent = `${emails.length} recent`;
+    
+    const list = document.getElementById("outboxList");
+    list.innerHTML = "";
+    if (!emails.length) {
+      list.innerHTML = "<div class='text-muted'>No emails in outbox yet.</div>";
+      return;
+    }
+    emails.slice(0, 5).forEach(m => {
+      const item = document.createElement("div");
+      item.className = "p-1 border-bottom";
+      item.innerHTML = `<div><strong>${m.subject}</strong> <span class="text-muted">(${m.timestamp})</span></div><div class="text-muted">To: ${m.to}</div>`;
+      list.appendChild(item);
+    });
+  } catch (e) {}
+}
+
+document.getElementById("btnViewOutbox").addEventListener("click", () => {
+  const drawer = document.getElementById("outboxDrawer");
+  if (drawer.classList.contains("d-none")) {
+    drawer.classList.remove("d-none");
+    loadOutbox();
+  } else {
+    drawer.classList.add("d-none");
+  }
+});
+
+async function runCryptoBenchmark(payloadKb = 100) {
+  const spinner = document.getElementById("cryptoBenchSpinner");
+  const btn = document.getElementById("btnRunCryptoBench");
+  if (spinner) spinner.classList.remove("d-none");
+  if (btn) btn.disabled = true;
+  try {
+    const res = await fetch(`/api/admin/crypto-benchmark?payload_kb=${payloadKb}`);
+    const d = await res.json();
+    if (d.success) {
+      document.getElementById("statEncLatency").textContent = `${d.metrics.encryption_ms} ms`;
+      document.getElementById("statEncSpeed").textContent = `${d.metrics.encryption_mb_s} MB/s`;
+      document.getElementById("statDecLatency").textContent = `${d.metrics.decryption_ms} ms`;
+      document.getElementById("statDecSpeed").textContent = `${d.metrics.decryption_mb_s} MB/s`;
+      document.getElementById("statTamperStatus").textContent = d.metrics.tamper_detected_and_blocked ? "Verified Pass" : "Warning";
+      document.getElementById("statKekFp").textContent = d.info.kek_fingerprint;
+      document.getElementById("statKekSource").textContent = d.info.kek_source;
+      document.getElementById("cryptoKekBadge").textContent = `KEK: Active`;
+    }
+  } catch (e) {
+  } finally {
+    if (spinner) spinner.classList.add("d-none");
+    if (btn) btn.disabled = false;
+  }
+}
+
+document.getElementById("btnRunCryptoBench").addEventListener("click", () => runCryptoBenchmark(100));
+
+document.getElementById("btnSandboxEncrypt").addEventListener("click", async () => {
+  const text = document.getElementById("sandboxPlaintext").value.trim();
+  const fb = document.getElementById("sandboxFeedback");
+  if (!text) return;
+  try {
+    const res = await fetch("/api/admin/crypto-sandbox", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "encrypt", payload: text }),
+    });
+    const d = await res.json();
+    if (d.success) {
+      document.getElementById("sandboxCiphertext").value = d.token;
+      document.getElementById("sandboxTimingText").textContent = `Encrypted in ${d.elapsed_ms} ms`;
+      fb.className = "alert alert-success p-1 small mb-0";
+      fb.textContent = "Encrypted successfully with wrapped data key.";
+      fb.classList.remove("d-none");
+    }
+  } catch (e) {}
+});
+
+document.getElementById("btnSandboxDecrypt").addEventListener("click", async () => {
+  const token = document.getElementById("sandboxCiphertext").value.trim();
+  const fb = document.getElementById("sandboxFeedback");
+  if (!token) return;
+  try {
+    const res = await fetch("/api/admin/crypto-sandbox", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "decrypt", payload: token }),
+    });
+    const d = await res.json();
+    if (d.success) {
+      document.getElementById("sandboxPlaintext").value = d.decrypted;
+      document.getElementById("sandboxTimingText").textContent = `Decrypted in ${d.elapsed_ms} ms`;
+      fb.className = "alert alert-success p-1 small mb-0";
+      fb.textContent = "Decrypted and authenticated successfully.";
+      fb.classList.remove("d-none");
+    }
+  } catch (e) {}
+});
+
+document.getElementById("btnSandboxClear").addEventListener("click", () => {
+  document.getElementById("sandboxPlaintext").value = "";
+  document.getElementById("sandboxCiphertext").value = "";
+  document.getElementById("sandboxFeedback").classList.add("d-none");
+  document.getElementById("sandboxTimingText").textContent = "";
+});
+
+(async function checkSystemCapabilities() {
+  try {
+    const r = await fetch("/api/stats");
+    const d = await r.json();
+    const aiBadge = document.getElementById("dashAiEngineBadge");
+    if (d.has_gemini) {
+      aiBadge.textContent = "Live Gemini AI";
+      aiBadge.className = "chip chip-ok";
+    } else {
+      aiBadge.textContent = "Local NLP";
+      aiBadge.className = "chip chip-muted";
+    }
+
+    const smtpBadge = document.getElementById("dashSmtpBadge");
+    if (d.smtp_configured) {
+      smtpBadge.textContent = "Live SMTP";
+      smtpBadge.className = "chip chip-ok";
+    } else {
+      smtpBadge.textContent = "Dev Outbox";
+      smtpBadge.className = "chip chip-muted";
+    }
+    loadOutbox();
+    runCryptoBenchmark(100);
+  } catch (e) {}
+})();
+</script>
+{% endblock %}

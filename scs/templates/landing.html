@@ -1,0 +1,345 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Smart Cloud Shield — Zero-Trust Cloud DLP & Intelligent Security</title>
+  <meta name="description" content="Secure file vault with Zero-Trust Cloud DLP, envelope encryption, and behavioral download protection.">
+  <meta property="og:image" content="{{ url_for('static', filename='images/hero.jpg') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='bootstrap.min.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
+  <style>
+    .hero-section {
+      padding: 5rem 0 3.5rem;
+      text-align: center;
+    }
+    .hero-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.35rem 0.85rem;
+      border-radius: 9999px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      margin-bottom: 1.5rem;
+    }
+    .hero-title {
+      font-size: 2.75rem;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      line-height: 1.15;
+      color: var(--text-primary);
+      max-width: 760px;
+      margin: 0 auto 1.25rem;
+    }
+    .hero-desc {
+      font-size: 1.1rem;
+      color: var(--text-muted);
+      max-width: 640px;
+      margin: 0 auto 2rem;
+      line-height: 1.6;
+    }
+    .feature-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 1.5rem;
+      height: 100%;
+      box-shadow: var(--shadow-sm);
+    }
+    .feature-icon {
+      width: 2.25rem;
+      height: 2.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: var(--radius);
+      background: var(--surface-subtle);
+      border: 1px solid var(--border);
+      margin-bottom: 1rem;
+      font-size: 1rem;
+    }
+    .sim-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow);
+      padding: 2rem;
+    }
+    .result-card {
+      background: var(--surface-subtle);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <!-- Clean Navbar -->
+  <nav class="navbar navbar-expand topbar">
+    <div class="container">
+      <a class="navbar-brand" href="{{ url_for('index') }}">
+        <span class="brand-mark"></span>
+        <span>Smart Cloud Shield</span>
+      </a>
+      <ul class="navbar-nav ms-auto gap-2 align-items-center">
+        <li class="nav-item"><a class="nav-link" href="#simulator">Simulator</a></li>
+        <li class="nav-item"><a class="nav-link" href="#logins">Demo Accounts</a></li>
+        {% if current_user.is_authenticated %}
+        <li class="nav-item"><a class="btn btn-sm btn-primary" href="{{ url_for('files') }}">Go to Files</a></li>
+        {% else %}
+        <li class="nav-item"><a class="btn btn-sm btn-outline-secondary" href="{{ url_for('login') }}">Sign In</a></li>
+        <li class="nav-item"><a class="btn btn-sm btn-primary" href="{{ url_for('register') }}">Register</a></li>
+        {% endif %}
+      </ul>
+    </div>
+  </nav>
+
+  <main class="container">
+    <!-- Hero Section -->
+    <section class="hero-section">
+      <div class="hero-pill">
+        <span>🛡️</span>
+        <span>Zero-Trust & GenAI Threat Defense</span>
+      </div>
+      <h1 class="hero-title">Intelligent file security that prevents corporate data leaks.</h1>
+      <p class="hero-desc">
+        Smart Cloud Shield provides Zero-Trust Cloud DLP with Envelope Encryption, scanning and encrypting documents on upload, and evaluating every download attempt in real-time.
+      </p>
+      <div class="d-flex justify-content-center gap-3">
+        {% if current_user.is_authenticated %}
+        <a href="{{ url_for('files') }}" class="btn btn-primary px-4 py-2">Open File Vault</a>
+        {% else %}
+        <a href="{{ url_for('login') }}" class="btn btn-primary px-4 py-2">Sign In to Demo</a>
+        <a href="#simulator" class="btn btn-outline-secondary px-4 py-2">Interactive Demo</a>
+        {% endif %}
+      </div>
+    </section>
+
+    <!-- 3 Simple Pillars -->
+    <section class="mb-5">
+      <div class="row g-4">
+        <div class="col-md-4">
+          <div class="feature-card">
+            <div class="feature-icon">🔍</div>
+            <h2 class="h6 fw-bold mb-2">Automated Inspection</h2>
+            <p class="text-muted small mb-0">
+              Scans documents for payment cards, government IDs, passwords, and private keys upon upload, categorizing sensitivity automatically.
+            </p>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="feature-card">
+            <div class="feature-icon">⚡</div>
+            <h2 class="h6 fw-bold mb-2">Contextual Risk Engine</h2>
+            <p class="text-muted small mb-0">
+              Evaluates download time, volume frequency, device recognition, and machine-learned behavior to detect suspicious activity before files leave.
+            </p>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="feature-card">
+            <div class="feature-icon">🔒</div>
+            <h2 class="h6 fw-bold mb-2">Adaptive Protection</h2>
+            <p class="text-muted small mb-0">
+              Low-risk downloads pass instantly. Moderate risks trigger logged warnings, while high-risk anomalous bulk downloads are blocked automatically.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Interactive Simulator -->
+    <section id="simulator" class="mb-5">
+      <div class="sim-box">
+        <div class="mb-4">
+          <h2 class="h5 fw-bold mb-1">Interactive Risk Calculator</h2>
+          <p class="text-muted small mb-0">Simulate how the system evaluates a download request based on sensitivity, time, device, and volume.</p>
+        </div>
+
+        <div class="row g-4 align-items-center">
+          <div class="col-lg-7">
+            <div class="mb-3">
+              <label class="form-label">Document Sensitivity</label>
+              <select id="simSensitivity" class="form-select">
+                <option value="0">Public (Marketing assets, public guides) — 0 pts</option>
+                <option value="10">Internal (Standard business memos, docs) — 10 pts</option>
+                <option value="20" selected>Confidential (Financial sheets, customer data) — 20 pts</option>
+                <option value="30">Highly Confidential (Private keys, employee PII) — 30 pts</option>
+              </select>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label d-flex justify-content-between">
+                <span>Recent Download Volume</span>
+                <span id="volLabel" class="fw-bold text-dark">3 downloads</span>
+              </label>
+              <input type="range" class="form-range" id="simVolume" min="1" max="25" value="3">
+              <div class="d-flex justify-content-between text-muted" style="font-size: 0.75rem;">
+                <span>1 (Single file)</span>
+                <span>10 (Busy day)</span>
+                <span>25 (Bulk exfiltration)</span>
+              </div>
+            </div>
+
+            <div class="row g-2 mb-3">
+              <div class="col-sm-6">
+                <label class="form-label">Access Time</label>
+                <select id="simTime" class="form-select">
+                  <option value="0" selected>Working Hours (10:00 AM - 06:00 PM)</option>
+                  <option value="15">After Hours (02:00 AM Midnight)</option>
+                </select>
+              </div>
+              <div class="col-sm-6">
+                <label class="form-label">Device Context</label>
+                <select id="simDevice" class="form-select">
+                  <option value="0" selected>Known Corporate Device</option>
+                  <option value="15">Unrecognized / New Device</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" id="simAnomaly">
+              <label class="form-check-label small text-muted" for="simAnomaly">
+                Simulate ML Behavioral Anomaly (+25 pts)
+              </label>
+            </div>
+          </div>
+
+          <div class="col-lg-5">
+            <div class="result-card">
+              <div class="text-muted small text-uppercase fw-semibold mb-2">Calculated Risk Score</div>
+              <div class="display-4 fw-bold text-dark mb-2" id="simScore">20</div>
+              <div class="mb-3">
+                <span id="simOutcomeBadge" class="chip badge-allowed fs-6 py-1 px-3">ALLOWED</span>
+              </div>
+              <p class="small text-muted mb-0" id="simExplanation">
+                Normal download within policy thresholds. Allowed immediately.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Demo Logins -->
+    <section id="logins" class="mb-5">
+      <div class="panel">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <div>
+            <h2 class="h6 fw-bold mb-1">Pre-configured Demo Accounts</h2>
+            <p class="text-muted small mb-0">Use any of these demo accounts to test different roles and permissions. Default password: <code>Pass@12345</code></p>
+          </div>
+          <a href="{{ url_for('login') }}" class="btn btn-sm btn-primary">Sign In</a>
+        </div>
+
+        <div class="table-responsive">
+          <table class="table t mb-0">
+            <thead>
+              <tr>
+                <th>Username</th>
+                <th>Role</th>
+                <th>Department</th>
+                <th>Clearance</th>
+                <th>Permissions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>admin</strong></td>
+                <td><span class="chip chip-ok">Admin</span></td>
+                <td>Security</td>
+                <td>Level 3 (Max)</td>
+                <td>Full dashboard, forensics, logs, user management</td>
+              </tr>
+              <tr>
+                <td><strong>alice</strong></td>
+                <td><span class="chip chip-muted">Employee</span></td>
+                <td>Finance</td>
+                <td>Level 2</td>
+                <td>Access to Finance documents and downloads</td>
+              </tr>
+              <tr>
+                <td><strong>bob</strong></td>
+                <td><span class="chip chip-muted">Employee</span></td>
+                <td>HR</td>
+                <td>Level 2</td>
+                <td>Access to HR files and employee records</td>
+              </tr>
+              <tr>
+                <td><strong>carol</strong></td>
+                <td><span class="chip chip-muted">Employee</span></td>
+                <td>Engineering</td>
+                <td>Level 2</td>
+                <td>Access to source repositories and technical docs</td>
+              </tr>
+              <tr>
+                <td><strong>guest1</strong></td>
+                <td><span class="chip chip-warn">Guest</span></td>
+                <td>External</td>
+                <td>Level 0</td>
+                <td>Public files only (restricted from confidential data)</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Clean Footer -->
+  <footer class="container py-4 border-top text-center text-muted small">
+    Smart Cloud Shield &bull; Automated Data Protection & Threat Defense
+  </footer>
+
+  <script>
+    // Risk Simulator logic
+    function recalculate() {
+      const sens = parseInt(document.getElementById('simSensitivity').value, 10);
+      const vol = parseInt(document.getElementById('simVolume').value, 10);
+      const time = parseInt(document.getElementById('simTime').value, 10);
+      const dev = parseInt(document.getElementById('simDevice').value, 10);
+      const anomaly = document.getElementById('simAnomaly').checked ? 25 : 0;
+
+      // Volume points formula matching risk engine
+      let volPts = 0;
+      if (vol > 15) volPts = 20;
+      else if (vol > 8) volPts = 12;
+      else if (vol > 3) volPts = 5;
+
+      const total = Math.min(100, sens + volPts + time + dev + anomaly);
+      document.getElementById('volLabel').textContent = `${vol} download${vol > 1 ? 's' : ''}`;
+      document.getElementById('simScore').textContent = total;
+
+      const badge = document.getElementById('simOutcomeBadge');
+      const exp = document.getElementById('simExplanation');
+
+      if (total >= 70) {
+        badge.className = 'chip badge-blocked fs-6 py-1 px-3';
+        badge.textContent = 'BLOCKED';
+        exp.textContent = 'High-risk pattern detected. Download halted, incident logged, and admin alerted.';
+      } else if (total >= 40) {
+        badge.className = 'chip badge-warned fs-6 py-1 px-3';
+        badge.textContent = 'WARNED';
+        exp.textContent = 'Elevated risk context. Download allowed with warning logged for review.';
+      } else {
+        badge.className = 'chip badge-allowed fs-6 py-1 px-3';
+        badge.textContent = 'ALLOWED';
+        exp.textContent = 'Normal activity within policy limits. Allowed immediately.';
+      }
+    }
+
+    document.getElementById('simSensitivity').addEventListener('change', recalculate);
+    document.getElementById('simVolume').addEventListener('input', recalculate);
+    document.getElementById('simTime').addEventListener('change', recalculate);
+    document.getElementById('simDevice').addEventListener('change', recalculate);
+    document.getElementById('simAnomaly').addEventListener('change', recalculate);
+    recalculate();
+  </script>
+</body>
+</html>

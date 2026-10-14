@@ -1,0 +1,6 @@
+employee_id,name,department,company_email,office_phone
+EMP-101,Aarav Nair,Marketing,aarav.nair@corp.example,+91 98765 11111
+EMP-102,Diya Sengupta,Human Resources,diya.sengupta@corp.example,+91 98765 22222
+EMP-103,Rohan Mehta,Engineering,rohan.mehta@corp.example,+91 98765 33333
+EMP-104,Kavita Iyer,Operations,kavita.iyer@corp.example,+91 98765 44444
+# Internal company directory for general operations
