@@ -91,8 +91,10 @@ def send_otp(user):
         device_id=device_id(),
     )
 
-    if current_app.config.get("SHOW_OTP"):
-        session["demo_otp"] = code
-        flash(f"Verification code dispatched to {user.email}. (Dev copy: {code})", "info")
-    else:
-        flash(f"Verification code sent to {user.email}.", "info")
+    # Always log OTP exclusively to terminal console
+    print(f"\n{'='*56}", flush=True)
+    print(f" [MFA VERIFICATION] User: '{user.username}' ({user.email})", flush=True)
+    print(f" >>> ONE-TIME PASSCODE (OTP): {code} <<<", flush=True)
+    print(f"{'='*56}\n", flush=True)
+
+    flash(f"Verification code sent to {user.email}.", "info")

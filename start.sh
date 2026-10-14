@@ -22,7 +22,7 @@ else
 fi
 
 # 2. Environment Variables
-export SHOW_OTP=1
+export SHOW_OTP=0
 export DEMO_MODE=0
 
 # 3. Seed Database If Missing

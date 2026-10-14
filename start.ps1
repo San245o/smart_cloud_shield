@@ -20,7 +20,7 @@ if (-not (Test-Path $VenvPython)) {
 
 # 2. Environment Variables
 $env:DISABLE_SQLALCHEMY_CEXT = "1"
-$env:SHOW_OTP = "1"
+$env:SHOW_OTP = "0"
 $env:DEMO_MODE = "0"
 
 # 3. Seed Database If Missing

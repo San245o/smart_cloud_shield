@@ -27,7 +27,7 @@ if not exist "venv\Scripts\python.exe" (
 
 :: 2. Set Windows Pure-Python & Security Environment Variables
 set DISABLE_SQLALCHEMY_CEXT=1
-set SHOW_OTP=1
+set SHOW_OTP=0
 set DEMO_MODE=0
 
 :: 3. Seed Database If Not Present

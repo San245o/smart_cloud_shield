@@ -38,7 +38,7 @@ class Config:
     SESSION_COOKIE_SAMESITE = "Lax"
     PERMANENT_SESSION_LIFETIME = timedelta(minutes=30)
     DEMO_MODE = os.environ.get("DEMO_MODE", "0") == "1"
-    SHOW_OTP = os.environ.get("SHOW_OTP", "1") == "1"
+    SHOW_OTP = os.environ.get("SHOW_OTP", "0") == "1"
     TZ_OFFSET_MIN = int(os.environ.get("TZ_OFFSET_MIN", "330"))  # IST (+05:30)
     DEBUG_OTPS = {}
 

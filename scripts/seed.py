@@ -1,6 +1,7 @@
 """Reset the database and create demo users + sample files.
 DEMO PASSWORDS ONLY. Change or delete these accounts before any real use."""
 import json
+import os
 import shutil
 import uuid
 from datetime import timedelta
