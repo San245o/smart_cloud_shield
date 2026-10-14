@@ -26,18 +26,19 @@ def clear_simulated_outbox():
 
 
 def is_smtp_configured() -> bool:
-    """Checks if a valid live email service (Resend HTTPS API or SMTP host) is configured."""
+    """Checks if a valid live email service (Gmail Webhook, Brevo API, Resend API, or SMTP) is configured."""
     if os.environ.get("DEMO_MODE") == "1" or os.environ.get("TESTING") == "1":
         return False
     if current_app and (current_app.config.get("DEMO_MODE") or current_app.config.get("TESTING") or getattr(current_app, "testing", False)):
         return False
 
-    # Check Resend API key (uses HTTPS port 443 — works seamlessly on cloud free tiers like Render!)
-    resend_key = os.environ.get("RESEND_API_KEY")
-    if current_app:
-        resend_key = current_app.config.get("RESEND_API_KEY") or resend_key
-    if resend_key and resend_key.strip():
-        return True
+    # Check HTTPS-based email providers (work seamlessly on Render Free without SMTP port blocks)
+    for key in ("GMAIL_WEBHOOK_URL", "BREVO_API_KEY", "RESEND_API_KEY"):
+        val = os.environ.get(key)
+        if current_app:
+            val = current_app.config.get(key) or val
+        if val and val.strip():
+            return True
 
     server = os.environ.get("MAIL_SERVER")
     user = os.environ.get("MAIL_USER")
@@ -49,6 +50,102 @@ def is_smtp_configured() -> bool:
     if "gmail" in server.lower() or "google" in server.lower():
         return bool(user and user.strip())
     return True
+
+
+def _dispatch_gmail_webhook(
+    webhook_url: str,
+    to: str,
+    subject: str,
+    text_body: str,
+    html_body: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Synchronously delivers an email via a Google Apps Script HTTPS Webhook bridge (uses real Gmail, sends to any recipient)."""
+    import json
+    import urllib.request
+    import urllib.error
+
+    try:
+        headers = {
+            "Content-Type": "application/json",
+            "User-Agent": "SmartCloudShield/1.0",
+        }
+        payload = {
+            "to": to.strip(),
+            "subject": subject,
+            "text": text_body,
+            "html": html_body or f"<pre>{text_body}</pre>",
+        }
+        req = urllib.request.Request(webhook_url.strip(), data=json.dumps(payload).encode("utf-8"), headers=headers, method="POST")
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            content = resp.read().decode("utf-8", errors="ignore")
+            logger.info(f"Email delivered via Gmail Webhook to {to}: {content[:100]}")
+            print(f"[GMAIL WEBHOOK DELIVERED] Email successfully sent to {to} via Gmail Webhook", flush=True)
+            return {"success": True, "error": None, "provider": "gmail_webhook"}
+    except urllib.error.HTTPError as e:
+        err = e.read().decode("utf-8", errors="ignore")
+        logger.error(f"Gmail Webhook HTTP error {e.code}: {err}")
+        print(f"[GMAIL WEBHOOK ERROR] HTTP {e.code}: {err}", flush=True)
+        return {"success": False, "error": f"HTTP {e.code}: {err}", "provider": "gmail_webhook"}
+    except Exception as e:
+        logger.error(f"Gmail Webhook dispatch exception: {e}")
+        print(f"[GMAIL WEBHOOK ERROR] Exception: {e}", flush=True)
+        return {"success": False, "error": str(e), "provider": "gmail_webhook"}
+
+
+def _dispatch_brevo_api(
+    api_key: str,
+    mail_from: str,
+    to: str,
+    subject: str,
+    text_body: str,
+    html_body: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Synchronously delivers an email via Brevo (Sendinblue) REST API over HTTPS port 443 (sends to any recipient)."""
+    import json
+    import urllib.request
+    import urllib.error
+
+    try:
+        from_email = "banagarsankeerth@gmail.com"
+        from_name = "Smart Cloud Shield"
+        if "<" in mail_from and ">" in mail_from:
+            from_name = mail_from.split("<")[0].strip() or from_name
+            from_email = mail_from.split("<")[1].split(">")[0].strip() or from_email
+        elif "@" in mail_from:
+            from_email = mail_from.strip()
+
+        url = "https://api.brevo.com/v3/smtp/email"
+        headers = {
+            "api-key": api_key.strip(),
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            "User-Agent": "SmartCloudShield/1.0",
+        }
+        payload = {
+            "sender": {"name": from_name, "email": from_email},
+            "to": [{"email": to.strip()}],
+            "subject": subject,
+            "textContent": text_body,
+        }
+        if html_body:
+            payload["htmlContent"] = html_body
+
+        req = urllib.request.Request(url, data=json.dumps(payload).encode("utf-8"), headers=headers, method="POST")
+        with urllib.request.urlopen(req, timeout=12) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+            msg_id = data.get("messageId") or data.get("id")
+            logger.info(f"Email successfully delivered via Brevo API to {to}: id={msg_id}")
+            print(f"[BREVO DELIVERED] Email successfully sent to {to} via Brevo API (id={msg_id})", flush=True)
+            return {"success": True, "error": None, "id": msg_id, "provider": "brevo"}
+    except urllib.error.HTTPError as e:
+        err = e.read().decode("utf-8", errors="ignore")
+        logger.error(f"Brevo API HTTP error {e.code}: {err}")
+        print(f"[BREVO ERROR] HTTP {e.code}: {err}", flush=True)
+        return {"success": False, "error": f"HTTP {e.code}: {err}", "provider": "brevo"}
+    except Exception as e:
+        logger.error(f"Brevo dispatch exception: {e}")
+        print(f"[BREVO ERROR] Exception: {e}", flush=True)
+        return {"success": False, "error": str(e), "provider": "brevo"}
 
 
 def _dispatch_resend_api(
@@ -66,18 +163,8 @@ def _dispatch_resend_api(
 
     try:
         sender = mail_from if mail_from and "@" in mail_from and not mail_from.endswith(".local") else "Smart Cloud Shield <onboarding@resend.dev>"
-        # Use Resend sandbox address if custom domain not explicitly verified
         if "resend.dev" not in sender and not os.environ.get("RESEND_CUSTOM_DOMAIN"):
             sender = "Smart Cloud Shield <onboarding@resend.dev>"
-
-        # Resend Sandbox Rule: In free sandbox mode, Resend strictly allows delivery only to the account owner's email.
-        # We automatically route sandbox emails to banagarsankeerth@gmail.com so no 403 occurs.
-        resend_target = os.environ.get("RESEND_TO") or "banagarsankeerth@gmail.com"
-        actual_to = to
-        actual_subject = subject
-        if not os.environ.get("RESEND_CUSTOM_DOMAIN") and to.lower() != resend_target.lower():
-            actual_to = resend_target
-            actual_subject = f"[{to}] {subject}"
 
         url = "https://api.resend.com/emails"
         headers = {
@@ -87,8 +174,8 @@ def _dispatch_resend_api(
         }
         payload = {
             "from": sender,
-            "to": [actual_to],
-            "subject": actual_subject,
+            "to": [to.strip()],
+            "subject": subject,
             "text": text_body,
         }
         if html_body:
@@ -148,17 +235,49 @@ def send_email(
     async_send: bool = True,
 ) -> Dict[str, Any]:
     """
-    Sends an email using Resend HTTPS API (preferred for cloud hosts) or SMTP parameters.
-    If no provider is configured, stores message in SIMULATED_OUTBOX and logs to console.
+    Sends an email using the best available configured provider:
+    1. Google Apps Script Webhook (HTTPS port 443 — uses personal Gmail, sends to ANY recipient)
+    2. Brevo API (HTTPS port 443 — free 300 emails/day, sends to ANY recipient)
+    3. Resend API (HTTPS port 443)
+    4. Traditional SMTP (e.g. Gmail SMTP port 587 on Koyeb/Fly/EC2)
+    If no provider is configured, records in SIMULATED_OUTBOX.
     """
     cfg = current_app.config if current_app else {}
+    gmail_webhook = cfg.get("GMAIL_WEBHOOK_URL") or os.environ.get("GMAIL_WEBHOOK_URL")
+    brevo_key = cfg.get("BREVO_API_KEY") or os.environ.get("BREVO_API_KEY")
     resend_key = cfg.get("RESEND_API_KEY") or os.environ.get("RESEND_API_KEY")
     mail_from = cfg.get("MAIL_FROM") or os.environ.get("MAIL_FROM", "security@smartcloudshield.local")
 
     now_iso = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
     is_dummy_recipient = not to or any(to.lower().endswith(d) for d in ("@corp.example", ".example", ".local", "@example.com"))
 
-    # Priority 1: Resend HTTP API (HTTPS port 443 — works everywhere without SMTP firewall blocks)
+    # Provider 1: Google Apps Script Webhook HTTPS bridge
+    if gmail_webhook and gmail_webhook.strip() and not is_dummy_recipient:
+        if async_send:
+            t = threading.Thread(
+                target=_dispatch_gmail_webhook,
+                args=(gmail_webhook, to, subject, text_body, html_body),
+                daemon=True,
+            )
+            t.start()
+            return {"success": True, "error": None, "simulated": False, "queued": True, "provider": "gmail_webhook"}
+        else:
+            return _dispatch_gmail_webhook(gmail_webhook, to, subject, text_body, html_body)
+
+    # Provider 2: Brevo (Sendinblue) HTTPS REST API
+    if brevo_key and brevo_key.strip() and not is_dummy_recipient:
+        if async_send:
+            t = threading.Thread(
+                target=_dispatch_brevo_api,
+                args=(brevo_key, mail_from, to, subject, text_body, html_body),
+                daemon=True,
+            )
+            t.start()
+            return {"success": True, "error": None, "simulated": False, "queued": True, "provider": "brevo"}
+        else:
+            return _dispatch_brevo_api(brevo_key, mail_from, to, subject, text_body, html_body)
+
+    # Provider 3: Resend HTTP API
     if resend_key and resend_key.strip() and not is_dummy_recipient:
         if async_send:
             t = threading.Thread(
@@ -171,7 +290,7 @@ def send_email(
         else:
             return _dispatch_resend_api(resend_key, mail_from, to, subject, text_body, html_body)
 
-    # Priority 2: Traditional SMTP Relay
+    # Provider 4: Traditional SMTP Relay
     server = cfg.get("MAIL_SERVER") or os.environ.get("MAIL_SERVER")
     port = int(cfg.get("MAIL_PORT") or os.environ.get("MAIL_PORT", 587))
     use_tls = bool(cfg.get("MAIL_USE_TLS", True))
