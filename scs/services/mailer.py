@@ -26,11 +26,19 @@ def clear_simulated_outbox():
 
 
 def is_smtp_configured() -> bool:
-    """Checks if a valid live SMTP host is specified in app config or environment."""
+    """Checks if a valid live email service (Resend HTTPS API or SMTP host) is configured."""
     if os.environ.get("DEMO_MODE") == "1" or os.environ.get("TESTING") == "1":
         return False
     if current_app and (current_app.config.get("DEMO_MODE") or current_app.config.get("TESTING") or getattr(current_app, "testing", False)):
         return False
+
+    # Check Resend API key (uses HTTPS port 443 — works seamlessly on cloud free tiers like Render!)
+    resend_key = os.environ.get("RESEND_API_KEY")
+    if current_app:
+        resend_key = current_app.config.get("RESEND_API_KEY") or resend_key
+    if resend_key and resend_key.strip():
+        return True
+
     server = os.environ.get("MAIL_SERVER")
     user = os.environ.get("MAIL_USER")
     if current_app:
@@ -41,6 +49,57 @@ def is_smtp_configured() -> bool:
     if "gmail" in server.lower() or "google" in server.lower():
         return bool(user and user.strip())
     return True
+
+
+def _dispatch_resend_api(
+    api_key: str,
+    mail_from: str,
+    to: str,
+    subject: str,
+    text_body: str,
+    html_body: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Synchronously delivers an email via Resend's REST API over HTTPS port 443."""
+    import json
+    import urllib.request
+    import urllib.error
+
+    try:
+        sender = mail_from if mail_from and "@" in mail_from and not mail_from.endswith(".local") else "Smart Cloud Shield <onboarding@resend.dev>"
+        # Use Resend sandbox address if custom domain not explicitly verified
+        if "resend.dev" not in sender and not os.environ.get("RESEND_CUSTOM_DOMAIN"):
+            sender = "Smart Cloud Shield <onboarding@resend.dev>"
+
+        url = "https://api.resend.com/emails"
+        headers = {
+            "Authorization": f"Bearer {api_key.strip()}",
+            "Content-Type": "application/json",
+            "User-Agent": "SmartCloudShield/1.0",
+        }
+        payload = {
+            "from": sender,
+            "to": [to],
+            "subject": subject,
+            "text": text_body,
+        }
+        if html_body:
+            payload["html"] = html_body
+
+        req = urllib.request.Request(url, data=json.dumps(payload).encode("utf-8"), headers=headers, method="POST")
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+            logger.info(f"Email successfully delivered via Resend API to {to}: id={data.get('id')}")
+            print(f"[RESEND DELIVERED] Email successfully sent to {to} via Resend HTTPS API (id={data.get('id')})", flush=True)
+            return {"success": True, "error": None, "id": data.get("id"), "provider": "resend"}
+    except urllib.error.HTTPError as e:
+        err = e.read().decode("utf-8", errors="ignore")
+        logger.error(f"Resend API HTTP error {e.code}: {err}")
+        print(f"[RESEND ERROR] HTTP {e.code}: {err}", flush=True)
+        return {"success": False, "error": f"HTTP {e.code}: {err}", "provider": "resend"}
+    except Exception as e:
+        logger.error(f"Resend dispatch exception: {e}")
+        print(f"[RESEND ERROR] Exception: {e}", flush=True)
+        return {"success": False, "error": str(e), "provider": "resend"}
 
 
 def _dispatch_smtp_sync(
@@ -80,18 +139,36 @@ def send_email(
     async_send: bool = True,
 ) -> Dict[str, Any]:
     """
-    Sends an email using configured SMTP parameters.
-    If no SMTP server is configured, stores message in SIMULATED_OUTBOX and logs to console.
+    Sends an email using Resend HTTPS API (preferred for cloud hosts) or SMTP parameters.
+    If no provider is configured, stores message in SIMULATED_OUTBOX and logs to console.
     """
-    # Load configuration
     cfg = current_app.config if current_app else {}
+    resend_key = cfg.get("RESEND_API_KEY") or os.environ.get("RESEND_API_KEY")
+    mail_from = cfg.get("MAIL_FROM") or os.environ.get("MAIL_FROM", "security@smartcloudshield.local")
+
+    now_iso = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+    is_dummy_recipient = not to or any(to.lower().endswith(d) for d in ("@corp.example", ".example", ".local", "@example.com"))
+
+    # Priority 1: Resend HTTP API (HTTPS port 443 — works everywhere without SMTP firewall blocks)
+    if resend_key and resend_key.strip() and not is_dummy_recipient:
+        if async_send:
+            t = threading.Thread(
+                target=_dispatch_resend_api,
+                args=(resend_key, mail_from, to, subject, text_body, html_body),
+                daemon=True,
+            )
+            t.start()
+            return {"success": True, "error": None, "simulated": False, "queued": True, "provider": "resend"}
+        else:
+            return _dispatch_resend_api(resend_key, mail_from, to, subject, text_body, html_body)
+
+    # Priority 2: Traditional SMTP Relay
     server = cfg.get("MAIL_SERVER") or os.environ.get("MAIL_SERVER")
     port = int(cfg.get("MAIL_PORT") or os.environ.get("MAIL_PORT", 587))
     use_tls = bool(cfg.get("MAIL_USE_TLS", True))
     use_ssl = bool(cfg.get("MAIL_USE_SSL", False))
     user = cfg.get("MAIL_USER") or os.environ.get("MAIL_USER")
     password = cfg.get("MAIL_PASSWORD") or os.environ.get("MAIL_PASSWORD")
-    mail_from = cfg.get("MAIL_FROM") or os.environ.get("MAIL_FROM", "security@smartcloudshield.local")
 
     msg = EmailMessage()
     msg["Subject"] = subject
@@ -102,10 +179,7 @@ def send_email(
     if html_body:
         msg.add_alternative(html_body, subtype="html")
 
-    now_iso = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
-
     # If no SMTP server configured or dummy/local domain, record in simulated outbox
-    is_dummy_recipient = not to or any(to.lower().endswith(d) for d in ("@corp.example", ".example", ".local", "@example.com"))
     if not is_smtp_configured() or is_dummy_recipient:
         simulated_record = {
             "timestamp": now_iso,
@@ -132,7 +206,6 @@ def send_email(
 
     # Dispatch via SMTP
     if async_send:
-        # Asynchronous daemon thread so web worker is not blocked
         t = threading.Thread(
             target=_dispatch_smtp_sync,
             args=(msg, server, port, use_tls, use_ssl, user, password),

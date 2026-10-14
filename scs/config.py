@@ -42,7 +42,9 @@ class Config:
     TZ_OFFSET_MIN = int(os.environ.get("TZ_OFFSET_MIN", "330"))  # IST (+05:30)
     DEBUG_OTPS = {}
 
-    # Email & SMTP Configuration
+    # Email Pipeline (Resend HTTP API or SMTP Relay)
+    RESEND_API_KEY = os.environ.get("RESEND_API_KEY")
+    RESEND_CUSTOM_DOMAIN = os.environ.get("RESEND_CUSTOM_DOMAIN", "0") == "1"
     MAIL_SERVER = os.environ.get("MAIL_SERVER")
     MAIL_PORT = int(os.environ.get("MAIL_PORT", 587))
     MAIL_USE_TLS = os.environ.get("MAIL_USE_TLS", "1").lower() in ("1", "true", "yes")
