@@ -115,6 +115,13 @@ def create_app(db_uri=None, config_class=Config):
 
     with app.app_context():
         db.create_all()
+        # Auto-seed baseline users, encrypted files, and telemetry events if not present
+        try:
+            from scripts.seed import seed_if_needed
+            seed_if_needed()
+        except Exception as e:
+            app.logger.warning(f"seed_if_needed skipped: {e}")
+
         # Auto-sync user emails to configured accounts (handles cloud deployments where DB was seeded before env vars)
         try:
             target_admin = os.environ.get("ADMIN_ALERT_EMAIL") or os.environ.get("MAIL_USER") or "banagarsankeerth@gmail.com"
