@@ -33,7 +33,7 @@ def is_smtp_configured() -> bool:
         return False
 
     # Check HTTPS-based email providers (work seamlessly on Render Free without SMTP port blocks)
-    for key in ("GMAIL_WEBHOOK_URL", "BREVO_API_KEY", "RESEND_API_KEY"):
+    for key in ("GMAIL_WEBHOOK_URL", "BREVO_API_KEY", "SENDGRID_API_KEY", "RESEND_API_KEY"):
         val = os.environ.get(key)
         if current_app:
             val = current_app.config.get(key) or val
@@ -146,6 +146,62 @@ def _dispatch_brevo_api(
         logger.error(f"Brevo dispatch exception: {e}")
         print(f"[BREVO ERROR] Exception: {e}", flush=True)
         return {"success": False, "error": str(e), "provider": "brevo"}
+
+
+def _dispatch_sendgrid_api(
+    api_key: str,
+    mail_from: str,
+    to: str,
+    subject: str,
+    text_body: str,
+    html_body: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Synchronously delivers an email via SendGrid REST API v3 over HTTPS port 443."""
+    import json
+    import urllib.request
+    import urllib.error
+
+    try:
+        from_email = "banagarsankeerth@gmail.com"
+        from_name = "Smart Cloud Shield"
+        if "<" in mail_from and ">" in mail_from:
+            from_name = mail_from.split("<")[0].strip() or from_name
+            from_email = mail_from.split("<")[1].split(">")[0].strip() or from_email
+        elif "@" in mail_from:
+            from_email = mail_from.strip()
+
+        url = "https://api.sendgrid.com/v3/mail/send"
+        headers = {
+            "Authorization": f"Bearer {api_key.strip()}",
+            "Content-Type": "application/json",
+            "User-Agent": "SmartCloudShield/1.0",
+        }
+        content_items = [{"type": "text/plain", "value": text_body}]
+        if html_body:
+            content_items.append({"type": "text/html", "value": html_body})
+
+        payload = {
+            "personalizations": [{"to": [{"email": to.strip()}]}],
+            "from": {"email": from_email, "name": from_name},
+            "subject": subject,
+            "content": content_items,
+        }
+
+        req = urllib.request.Request(url, data=json.dumps(payload).encode("utf-8"), headers=headers, method="POST")
+        with urllib.request.urlopen(req, timeout=12) as resp:
+            # SendGrid returns 202 Accepted on success with empty body
+            logger.info(f"Email successfully delivered via SendGrid API to {to}: status={resp.status}")
+            print(f"[SENDGRID DELIVERED] Email successfully sent to {to} via SendGrid API", flush=True)
+            return {"success": True, "error": None, "provider": "sendgrid"}
+    except urllib.error.HTTPError as e:
+        err = e.read().decode("utf-8", errors="ignore")
+        logger.error(f"SendGrid API HTTP error {e.code}: {err}")
+        print(f"[SENDGRID ERROR] HTTP {e.code}: {err}", flush=True)
+        return {"success": False, "error": f"HTTP {e.code}: {err}", "provider": "sendgrid"}
+    except Exception as e:
+        logger.error(f"SendGrid dispatch exception: {e}")
+        print(f"[SENDGRID ERROR] Exception: {e}", flush=True)
+        return {"success": False, "error": str(e), "provider": "sendgrid"}
 
 
 def _dispatch_resend_api(
