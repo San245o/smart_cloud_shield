@@ -12,3 +12,7 @@ services:
         value: "1"
       - key: DEMO_MODE
         value: "0"
+      - key: ADMIN_ALERT_EMAIL
+        value: "uiuxlab123456@gmail.com"
+      - key: MAIL_FROM
+        value: "Smart Cloud Shield <banagarsankeerth@gmail.com>"

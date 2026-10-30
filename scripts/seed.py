@@ -108,7 +108,7 @@ def _seed_data(drop=False):
             ("guest1", "guest", "general", 0),
         ]:
             email_map = {
-                "admin": os.environ.get("ADMIN_ALERT_EMAIL") or os.environ.get("MAIL_USER") or "banagarsankeerth@gmail.com",
+                "admin": os.environ.get("ADMIN_ALERT_EMAIL") or os.environ.get("MAIL_USER") or "uiuxlab123456@gmail.com",
                 "alice": os.environ.get("ALICE_EMAIL") or "raghavendranr28781@gmail.com",
                 "bob": os.environ.get("BOB_EMAIL") or "raghavendranr1218@gmail.com",
             }
