@@ -1,4 +1,5 @@
 from .models import (
+    AccessRequest,
     Audit,
     Device,
     Event,
@@ -13,6 +14,7 @@ from .models import (
 )
 
 __all__ = [
+    "AccessRequest",
     "Audit",
     "Device",
     "Event",

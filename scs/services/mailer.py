@@ -661,3 +661,139 @@ Zero-Trust DLP & Cloud Security Engine
 
     # Use synchronous delivery for test email so caller can immediately inspect result
     return send_email(subject, to_email, text_body, html_body, async_send=False)
+
+
+def send_access_request_alert(req, admin_email: Optional[str] = None) -> Dict[str, Any]:
+    """Sends an immediate notification to administrators when a user requests clearance elevation."""
+    cfg = current_app.config if current_app else {}
+    to_admin = admin_email or cfg.get("ADMIN_ALERT_EMAIL") or os.environ.get("ADMIN_ALERT_EMAIL") or "uiuxlab123456@gmail.com"
+    if "sankeerth" in to_admin.lower():
+        to_admin = "uiuxlab123456@gmail.com"
+
+    user_name = req.user.username if req.user else "Unknown"
+    file_name = req.file.original_name if req.file else "Unknown"
+    dept = req.user.department.capitalize() if req.user else "Unknown"
+    now_str = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+
+    subject = f"🔔 [CLEARANCE REQUEST] Elevation Request: {user_name} for '{file_name}'"
+
+    text_body = f"""SMART CLOUD SHIELD: CLEARANCE ELEVATION REQUEST
+
+A user with insufficient clearance has requested temporary Break-Glass access to a restricted document.
+
+Requester: {user_name} (Dept: {dept})
+Current Clearance: L{req.current_clearance}
+Target Required Clearance: L{req.requested_clearance}
+Target Document: {file_name}
+Requested Duration: {req.duration_hours} Hours
+Business Justification:
+"{req.justification}"
+
+Timestamp: {now_str}
+
+Please review, approve, or reject this request in the Admin SIEM Dashboard.
+"""
+
+    content_html = f"""
+      <h1 style="color: #f59e0b;">Clearance Elevation Request</h1>
+      <p>User <strong>{user_name}</strong> has encountered a zero-trust clearance boundary and requested temporary Just-In-Time (JIT) access to a restricted document.</p>
+      
+      <table class="meta-table">
+        <tr>
+          <td class="meta-label">Requester:</td>
+          <td class="meta-value">{user_name} ({dept})</td>
+        </tr>
+        <tr>
+          <td class="meta-label">Current Clearance:</td>
+          <td class="meta-value">Level {req.current_clearance}</td>
+        </tr>
+        <tr>
+          <td class="meta-label">Required Clearance:</td>
+          <td class="meta-value" style="color: #ef4444; font-weight: bold;">Level {req.requested_clearance}</td>
+        </tr>
+        <tr>
+          <td class="meta-label">Target Document:</td>
+          <td class="meta-value">{file_name}</td>
+        </tr>
+        <tr>
+          <td class="meta-label">Requested Window:</td>
+          <td class="meta-value">{req.duration_hours} Hours</td>
+        </tr>
+        <tr>
+          <td class="meta-label">Business Justification:</td>
+          <td class="meta-value" style="font-style: italic;">&ldquo;{req.justification}&rdquo;</td>
+        </tr>
+        <tr>
+          <td class="meta-label">Request Time:</td>
+          <td class="meta-value">{now_str}</td>
+        </tr>
+      </table>
+
+      <div class="alert-box" style="background: rgba(245, 158, 11, 0.1); border-left-color: #f59e0b; color: #fde68a;">
+        ⚡ <strong>Action Required:</strong> Log in to the <strong>Admin Dashboard</strong> to approve or reject this request. Approved grants automatically expire after {req.duration_hours} hours.
+      </div>
+    """
+
+    html_body = _render_email_base(
+        title="Clearance Elevation Request",
+        badge_text="JIT ACCESS REQUEST",
+        badge_color="#f59e0b",
+        content_html=content_html,
+    )
+
+    return send_email(subject, to_admin, text_body, html_body, async_send=True)
+
+
+def send_access_decision_notification(req, approved: bool) -> Dict[str, Any]:
+    """Notifies the requesting user of the admin's decision on their clearance elevation request."""
+    to_user = req.user.email if req.user else None
+    if not to_user:
+        return {"success": False, "error": "No user email"}
+
+    user_name = req.user.username if req.user else "User"
+    file_name = req.file.original_name if req.file else "Document"
+    status_str = "APPROVED" if approved else "REJECTED"
+    badge_color = "#10b981" if approved else "#ef4444"
+    subject = f"{'✅' if approved else '❌'} [ACCESS {status_str}] Clearance Request for '{file_name}'"
+
+    now_str = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+
+    if approved:
+        text_body = f"""Hello {user_name},
+
+Your clearance elevation request for '{file_name}' has been APPROVED by an administrator.
+Access is temporarily active for {req.duration_hours} hours.
+
+You may now log in to the Cloud File Vault and download or preview the file.
+"""
+        content_html = f"""
+          <h1 style="color: #10b981;">Clearance Request Approved</h1>
+          <p>Hello <strong>{user_name}</strong>,</p>
+          <p>Your temporary clearance elevation request for <strong>{file_name}</strong> has been <strong>APPROVED</strong> by administrator <em>{req.reviewed_by}</em>.</p>
+          <div class="code-box" style="border-color: #10b981; color: #10b981;">
+            <div style="font-size: 13px; color: #94a3b8;">TEMPORARY ACCESS WINDOW</div>
+            <div style="font-size: 26px; font-weight: bold; color: #34d399; margin: 8px 0;">{req.duration_hours} Hours</div>
+            <div style="font-size: 12px; color: #94a3b8;">Expires at: {req.expires_at.strftime('%Y-%m-%d %H:%M UTC') if req.expires_at else 'N/A'}</div>
+          </div>
+          <p>You can now access and download the file from your Cloud File Vault.</p>
+        """
+    else:
+        text_body = f"""Hello {user_name},
+
+Your clearance elevation request for '{file_name}' was REVIEWED and REJECTED by an administrator.
+"""
+        content_html = f"""
+          <h1 style="color: #ef4444;">Clearance Request Rejected</h1>
+          <p>Hello <strong>{user_name}</strong>,</p>
+          <p>Your clearance elevation request for <strong>{file_name}</strong> has been <strong>REJECTED</strong> by administrator <em>{req.reviewed_by}</em>.</p>
+          <p>If you require this document for essential business duties, please consult with your department supervisor.</p>
+        """
+
+    html_body = _render_email_base(
+        title=f"Access Request {status_str.capitalize()}",
+        badge_text=f"JIT {status_str}",
+        badge_color=badge_color,
+        content_html=content_html,
+    )
+
+    return send_email(subject, to_user, text_body, html_body, async_send=True)

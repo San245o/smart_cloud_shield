@@ -16,6 +16,7 @@ from flask import (
 from flask_login import current_user
 
 from scs.models import (
+    AccessRequest,
     Audit,
     Device,
     Event,
@@ -39,7 +40,96 @@ admin_bp = Blueprint("admin", __name__)
 @admin_bp.route("/admin")
 @admin_required
 def dashboard():
-    return render_template("admin.html")
+    pending_requests = (
+        AccessRequest.query.filter_by(status="pending")
+        .order_by(AccessRequest.id.desc())
+        .all()
+    )
+    recent_grants = (
+        AccessRequest.query.filter(AccessRequest.status.in_(("approved", "rejected")))
+        .order_by(AccessRequest.id.desc())
+        .limit(6)
+        .all()
+    )
+    return render_template(
+        "admin.html",
+        pending_requests=pending_requests,
+        recent_grants=recent_grants,
+        utcnow=utcnow(),
+    )
+
+
+@admin_bp.route("/admin/access-requests/<int:rid>/approve", methods=["POST"])
+@admin_required
+def approve_access_request(rid):
+    req_obj = db.session.get(AccessRequest, rid) or abort(404)
+    if req_obj.status != "pending":
+        flash("This elevation request has already been reviewed.", "warning")
+        return redirect(url_for("admin.dashboard"))
+
+    now = utcnow()
+    req_obj.status = "approved"
+    req_obj.reviewed_at = now
+    req_obj.reviewed_by = current_user.username
+    req_obj.expires_at = now + timedelta(hours=req_obj.duration_hours)
+    db.session.commit()
+
+    file_name = req_obj.file.original_name if req_obj.file else f"File #{req_obj.file_id}"
+    user_name = req_obj.user.username if req_obj.user else f"User #{req_obj.user_id}"
+
+    audit(
+        current_user.username,
+        "approve_access_request",
+        f"user={user_name} file={file_name} hours={req_obj.duration_hours} expires={req_obj.expires_at.strftime('%Y-%m-%d %H:%M')}",
+    )
+    db.session.commit()
+
+    # Dispatch notification to user
+    try:
+        mailer.send_access_decision_notification(req_obj, approved=True)
+    except Exception as e:
+        current_app.logger.warning(f"Could not dispatch decision notification email: {e}")
+
+    flash(
+        f"Approved temporary clearance for {user_name} on '{file_name}' (valid for {req_obj.duration_hours} hours).",
+        "success",
+    )
+    return redirect(url_for("admin.dashboard"))
+
+
+@admin_bp.route("/admin/access-requests/<int:rid>/reject", methods=["POST"])
+@admin_required
+def reject_access_request(rid):
+    req_obj = db.session.get(AccessRequest, rid) or abort(404)
+    if req_obj.status != "pending":
+        flash("This elevation request has already been reviewed.", "warning")
+        return redirect(url_for("admin.dashboard"))
+
+    req_obj.status = "rejected"
+    req_obj.reviewed_at = utcnow()
+    req_obj.reviewed_by = current_user.username
+    db.session.commit()
+
+    file_name = req_obj.file.original_name if req_obj.file else f"File #{req_obj.file_id}"
+    user_name = req_obj.user.username if req_obj.user else f"User #{req_obj.user_id}"
+
+    audit(
+        current_user.username,
+        "reject_access_request",
+        f"user={user_name} file={file_name}",
+    )
+    db.session.commit()
+
+    try:
+        mailer.send_access_decision_notification(req_obj, approved=False)
+    except Exception as e:
+        current_app.logger.warning(f"Could not dispatch decision notification email: {e}")
+
+    flash(
+        f"Rejected clearance elevation request from {user_name} for '{file_name}'.",
+        "danger",
+    )
+    return redirect(url_for("admin.dashboard"))
 
 
 @admin_bp.route("/api/stats")
@@ -75,6 +165,7 @@ def api_stats():
             "counts": counts,
             "feed": feed,
             "open_incidents": Incident.query.filter_by(status="open").count(),
+            "pending_access_requests": AccessRequest.query.filter_by(status="pending").count(),
             "users": User.query.count(),
             "files": File.query.count(),
             "smtp_configured": is_smtp_configured(),

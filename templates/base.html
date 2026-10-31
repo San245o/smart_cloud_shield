@@ -27,7 +27,7 @@
         {% endif %}
       </ul>
       <div class="d-flex align-items-center gap-2">
-        <span class="navbar-text">{{ current_user.username }} &bull; {{ current_user.role }} ({{ current_user.department }})</span>
+        <span class="navbar-text">{{ current_user.username }} &bull; {{ current_user.role|capitalize }} ({{ current_user.department|capitalize }} &bull; <strong class="text-primary">L{{ current_user.clearance }}</strong>)</span>
         <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('logout') }}">Sign out</a>
       </div>
       {% else %}

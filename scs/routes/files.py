@@ -19,7 +19,7 @@ from flask import (
 from flask_login import current_user, login_required
 from werkzeug.utils import secure_filename
 
-from scs.models import Event, File, Incident, audit, db, utcnow
+from scs.models import AccessRequest, Event, File, Incident, audit, db, utcnow
 from scs.routes.helpers import current_hour, device_id, log_event
 from scs.services import access, crypto, dlp, risk, storage
 
@@ -44,11 +44,26 @@ def landing():
 @login_required
 def files():
     rows = File.query.order_by(File.id.desc()).all()
+    active_grants = {}
+    pending_requests = set()
+    if current_user.is_authenticated:
+        try:
+            for g in AccessRequest.query.filter_by(user_id=current_user.id, status="approved").filter(AccessRequest.expires_at > utcnow()).all():
+                active_grants[g.file_id] = g
+            for p in AccessRequest.query.filter_by(user_id=current_user.id, status="pending").all():
+                pending_requests.add(p.file_id)
+        except Exception:
+            pass
+
     return render_template(
         "files.html",
         files=rows,
         can_upload=access.can(current_user, "upload"),
         check=lambda f: access.can_download(current_user, f)[0],
+        file_clearance=access.file_required_clearance,
+        clearance_info=access.get_clearance_info,
+        active_grants=active_grants,
+        pending_requests=pending_requests,
     )
 
 
@@ -71,6 +86,17 @@ def upload():
         return redirect(url_for("files"))
     data = up.read()
     result = dlp.scan_file(data, name)
+
+    # Clearance Level Selection and DLP Escalation
+    raw_clr = request.form.get("min_clearance", "1")
+    try:
+        user_chosen_clr = max(0, min(3, int(raw_clr)))
+    except (ValueError, TypeError):
+        user_chosen_clr = 1
+
+    # DLP scanning determines base sensitivity and minimum required clearance
+    dlp_clr = access.REQUIRED_CLEARANCE.get(result["level"], 1)
+    effective_clearance = max(user_chosen_clr, dlp_clr)
 
     # Secure Deduplication (Report Section 2.7 & 6.6)
     content_hash = hashlib.sha256(data).hexdigest()
@@ -97,6 +123,7 @@ def upload():
         department=current_user.department,
         sensitivity=result["level"],
         sensitivity_score=result["score"],
+        min_clearance=effective_clearance,
         dlp_json=json.dumps(result["counts"]),
         wrapped_dek=wrapped,
     )
@@ -104,19 +131,90 @@ def upload():
     db.session.flush()
     log_event(current_user.id, "upload", "ok", file=f, nbytes=len(data))
 
+    clr_meta = access.get_clearance_info(effective_clearance)
     if is_dedup:
         audit(current_user.username, "upload_deduplicated", f"file={f.id} hash={content_hash[:12]} stored={stored}")
         flash(
-            f"Uploaded successfully. Secure deduplication detected identical block (storage optimized, zero redundant space). Classified as {f.sensitivity.replace('_', ' ')} (score {f.sensitivity_score}).",
+            f"Uploaded successfully. Secure deduplication detected identical block. Enforced clearance: {clr_meta['code']} - {clr_meta['name']}.",
             "info",
         )
     else:
-        audit(current_user.username, "upload", f"file={f.id} level={f.sensitivity}")
-        flash(
-            f"Uploaded and encrypted. Classified as {f.sensitivity.replace('_', ' ')} (score {f.sensitivity_score}).",
-            "success",
-        )
+        audit(current_user.username, "upload", f"file={f.id} level={f.sensitivity} clearance={effective_clearance}")
+        if dlp_clr > user_chosen_clr:
+            flash(
+                f"Uploaded and encrypted. DLP scanner detected sensitive patterns and escalated clearance to {clr_meta['code']} - {clr_meta['name']} ({result['level'].replace('_', ' ').capitalize()}).",
+                "warning",
+            )
+        else:
+            flash(
+                f"Uploaded and encrypted. Enforced clearance level: {clr_meta['code']} - {clr_meta['name']}.",
+                "success",
+            )
     db.session.commit()
+    return redirect(url_for("files"))
+
+
+@files_bp.route("/request-elevation/<int:fid>", methods=["POST"])
+@login_required
+def request_elevation(fid):
+    f = db.session.get(File, fid) or abort(404)
+    if current_user.status == "restricted":
+        flash("Your account is restricted by the security system. Contact an admin.", "danger")
+        return redirect(url_for("files"))
+
+    req_clr = access.file_required_clearance(f)
+    if access.can_download(current_user, f)[0]:
+        flash("You already possess authorization to access this file.", "info")
+        return redirect(url_for("files"))
+
+    # Check if a pending request already exists
+    existing = AccessRequest.query.filter_by(
+        user_id=current_user.id, file_id=f.id, status="pending"
+    ).first()
+    if existing:
+        flash(f"An elevation request for '{f.original_name}' is already pending administrator review.", "warning")
+        return redirect(url_for("files"))
+
+    justification = (request.form.get("justification") or "").strip()
+    if not justification or len(justification) < 5:
+        flash("Please provide a valid business justification (minimum 5 characters).", "danger")
+        return redirect(url_for("files"))
+
+    try:
+        hours = max(1, min(72, int(request.form.get("duration_hours", 2))))
+    except (ValueError, TypeError):
+        hours = 2
+
+    req_obj = AccessRequest(
+        user_id=current_user.id,
+        file_id=f.id,
+        current_clearance=current_user.clearance,
+        requested_clearance=req_clr,
+        justification=justification[:500],
+        duration_hours=hours,
+        status="pending",
+    )
+    db.session.add(req_obj)
+    db.session.commit()
+
+    audit(current_user.username, "request_clearance_elevation", f"file={f.id} name={f.original_name} hours={hours}")
+    log_event(
+        current_user.id,
+        "elevation_request",
+        "ok",
+        file=f,
+        reasons=[{"points": 0, "text": f"Requested L{req_clr} elevation: {justification[:60]}"}],
+    )
+    db.session.commit()
+
+    # Dispatch alert email to administrator
+    try:
+        from scs.services import mailer
+        mailer.send_access_request_alert(req_obj)
+    except Exception as e:
+        current_app.logger.warning(f"Could not dispatch elevation request alert email: {e}")
+
+    flash(f"Elevation request submitted for '{f.original_name}'. An administrator has been alerted.", "success")
     return redirect(url_for("files"))
 
 

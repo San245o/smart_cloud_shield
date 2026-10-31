@@ -69,7 +69,8 @@ def app():
     with a.app_context():
         db.drop_all(); db.create_all()
         for n, role, dept, clr in [("admin", "admin", "it", 3), ("alice", "employee", "finance", 3),
-                                   ("bob", "employee", "hr", 2), ("gus", "guest", "general", 0)]:
+                                   ("bob", "employee", "hr", 2), ("dave", "employee", "general", 1),
+                                   ("gus", "guest", "general", 0)]:
             u = User(username=n, email=f"{n}@x.io", role=role, department=dept, clearance=clr,
                      password_hash=generate_password_hash(PW))
             db.session.add(u)
@@ -590,6 +591,118 @@ def test_crypto_features_and_admin_sandbox(app):
     tampered_token = d_enc["token"][:-2] + "AA"
     r_bad = ac.post("/api/admin/crypto-sandbox", json={"action": "decrypt", "payload": tampered_token})
     assert r_bad.status_code == 400
+
+
+def test_clearance_levels_and_elevation_workflow(app):
+    """Verifies clearance option enforcement, DLP escalation, and JIT elevation approval workflow."""
+    from scs.models import AccessRequest, File, User
+    from scs.services import access
+
+    # Login as admin and alice
+    ac, ah = login(app, "admin")
+    dc, dh = login(app, "dave")  # Dave has clearance 1, general dept
+
+    # 1. Admin uploads file enforcing clearance level 2 (Confidential)
+    r_up = ac.post(
+        "/upload",
+        data={
+            "file": (io.BytesIO(b"Confidential financial forecast notes."), "forecast_q4.txt"),
+            "min_clearance": "2",
+        },
+        content_type="multipart/form-data",
+        headers=ah,
+    )
+    assert r_up.status_code == 302
+
+    with app.app_context():
+        f = File.query.filter_by(original_name="forecast_q4.txt").first()
+        assert f is not None
+        assert f.min_clearance >= 2
+        fid = f.id
+
+        # 2. Dave (clearance 1) cannot download raw file due to clearance requirement
+        dave = User.query.filter_by(username="dave").first()
+        ok, reason = access.can_download(dave, f)
+        assert ok is False
+        assert "Clearance L1" in reason or "below" in reason
+
+    # Dave tries to download via client -> gets redirected with flash
+    r_down = dc.get(f"/download/{fid}", headers=dh, follow_redirects=True)
+    assert b"Clearance L1" in r_down.data or b"below" in r_down.data
+
+    # 3. Dave submits Clearance Elevation Request with business justification
+    r_req = dc.post(
+        f"/request-elevation/{fid}",
+        data={
+            "justification": "Required for scheduled cross-departmental operations audit.",
+            "duration_hours": "2",
+        },
+        headers=dh,
+        follow_redirects=True,
+    )
+    assert r_req.status_code == 200
+    assert b"Elevation request submitted" in r_req.data
+
+    with app.app_context():
+        req_obj = AccessRequest.query.filter_by(file_id=fid, user_id=dave.id, status="pending").first()
+        assert req_obj is not None
+        assert req_obj.requested_clearance >= 2
+        assert req_obj.duration_hours == 2
+        rid = req_obj.id
+
+    # 4. Admin inspects dashboard and sees the pending elevation request with Yes / No decision
+    r_dash = ac.get("/admin", headers=ah)
+    assert r_dash.status_code == 200
+    assert b"Clearance Elevation Requests" in r_dash.data
+    assert b"forecast_q4.txt" in r_dash.data
+    assert b"Yes (Approve)" in r_dash.data
+    assert b"No (Reject)" in r_dash.data
+
+    # 5. Admin clicks Approve (Yes)
+    r_app = ac.post(f"/admin/access-requests/{rid}/approve", headers=ah, follow_redirects=True)
+    assert r_app.status_code == 200
+    assert b"Approved temporary clearance" in r_app.data
+
+    with app.app_context():
+        req_app = db.session.get(AccessRequest, rid)
+        assert req_app.status == "approved"
+        assert req_app.reviewed_by == "admin"
+        assert req_app.is_active is True
+
+        # Now access.can_download should allow Dave!
+        f = db.session.get(File, fid)
+        dave = User.query.filter_by(username="dave").first()
+        ok_after, reason_after = access.can_download(dave, f)
+        assert ok_after is True
+        assert "Temporary clearance elevation active" in reason_after
+
+    # 6. Dave can now download the file
+    r_down_ok = dc.get(f"/download/{fid}", headers=dh)
+    assert r_down_ok.status_code == 200
+    assert b"Confidential financial forecast notes." in r_down_ok.data
+
+    # 7. Test Admin rejecting an elevation request
+    with app.app_context():
+        req_reject = AccessRequest(
+            user_id=dave.id,
+            file_id=fid,
+            current_clearance=1,
+            requested_clearance=3,
+            justification="Unauthorized exploratory access",
+            duration_hours=1,
+            status="pending",
+        )
+        db.session.add(req_reject)
+        db.session.commit()
+        rej_id = req_reject.id
+
+    r_rej = ac.post(f"/admin/access-requests/{rej_id}/reject", headers=ah, follow_redirects=True)
+    assert r_rej.status_code == 200
+    assert b"Rejected clearance elevation request" in r_rej.data
+
+    with app.app_context():
+        assert db.session.get(AccessRequest, rej_id).status == "rejected"
+
 
 
 

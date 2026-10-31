@@ -17,8 +17,8 @@ from werkzeug.security import generate_password_hash
 
 from scs import create_app
 from scs.config import Config
-from scs.models import Device, Event, File, Incident, User, audit, db, utcnow
-from scs.services import crypto, dlp, ml, storage
+from scs.models import AccessRequest, Device, Event, File, Incident, User, audit, db, utcnow
+from scs.services import access, crypto, dlp, ml, storage
 
 PASSWORD = "Pass@12345"
 
@@ -156,11 +156,12 @@ def _seed_data(drop=False):
                 department=dept,
                 sensitivity=res["level"],
                 sensitivity_score=res["score"],
+                min_clearance=access.REQUIRED_CLEARANCE.get(res["level"], 1),
                 dlp_json=json.dumps(res["counts"]),
                 wrapped_dek=wrapped,
             )
         )
-        print(f"  {fname:26s} -> {res['level']:20s} score={res['score']}")
+        print(f"  {fname:26s} -> {res['level']:20s} score={res['score']} (Clearance: L{access.REQUIRED_CLEARANCE.get(res['level'], 1)})")
 
     # Add one deduplicated file to demonstrate cloud storage deduplication (Report Section 2.7 & 6.6)
     payroll_orig = sample_files()["payroll_2026.csv"][2].encode()
@@ -178,6 +179,7 @@ def _seed_data(drop=False):
                 department="finance",
                 sensitivity=orig_file.sensitivity,
                 sensitivity_score=orig_file.sensitivity_score,
+                min_clearance=orig_file.min_clearance,
                 dlp_json=orig_file.dlp_json,
                 wrapped_dek=orig_file.wrapped_dek,
             )
@@ -280,6 +282,20 @@ def _seed_data(drop=False):
                 status="open",
             )
         )
+        # Seed a sample pending clearance elevation request for demonstration
+        if "bob" in users:
+            db.session.add(
+                AccessRequest(
+                    user_id=users["bob"].id,
+                    file_id=f_cards.id,
+                    current_clearance=users["bob"].clearance,
+                    requested_clearance=3,
+                    justification="Conducting quarterly security audit on encrypted cardholder repositories.",
+                    duration_hours=2,
+                    status="pending",
+                    created_at=now - timedelta(minutes=15),
+                )
+            )
 
     audit("system", "seed", "demo data created")
     db.session.commit()

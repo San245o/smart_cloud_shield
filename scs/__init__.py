@@ -116,6 +116,13 @@ def create_app(db_uri=None, config_class=Config):
 
     with app.app_context():
         db.create_all()
+        # Safe schema migration for new columns on SQLite
+        try:
+            with db.engine.connect() as conn:
+                conn.execute(db.text("ALTER TABLE file ADD COLUMN min_clearance INTEGER DEFAULT 1"))
+                conn.commit()
+        except Exception:
+            pass
         # Auto-seed baseline users, encrypted files, and telemetry events if not present
         try:
             from scripts.seed import seed_if_needed
