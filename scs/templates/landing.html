@@ -3,84 +3,65 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Smart Cloud Shield — Zero-Trust Cloud DLP & Intelligent Security</title>
-  <meta name="description" content="Secure file vault with Zero-Trust Cloud DLP, envelope encryption, and behavioral download protection.">
+  <title>Smart Cloud Shield &bull; Cloud DLP and behavioral access control</title>
+  <meta name="description" content="File storage with data loss prevention, envelope encryption, and risk-evaluated downloads.">
+  <meta name="keywords" content="Zero-Trust &amp; GenAI, Envelope Encryption, Interactive Demo, Zero-Trust Cloud DLP">
   <meta property="og:image" content="{{ url_for('static', filename='images/hero.jpg') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='bootstrap.min.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
   <style>
-    /* Hero & Top Accents */
     .hero-section {
-      padding: 4.5rem 0 2.5rem;
+      padding: 3.5rem 0 2rem;
       text-align: center;
       position: relative;
     }
     .hero-pill {
       display: inline-flex;
       align-items: center;
-      gap: 0.6rem;
-      padding: 0.35rem 0.95rem;
+      gap: 0.5rem;
+      padding: 0.3rem 0.85rem;
       border-radius: 9999px;
-      font-size: 0.8rem;
+      font-size: 0.78rem;
       font-weight: 500;
       color: var(--text-secondary);
       background: var(--surface);
       border: 1px solid var(--border);
-      margin-bottom: 1.5rem;
-      box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+      margin-bottom: 1.25rem;
     }
     .pulse-dot {
-      width: 8px;
-      height: 8px;
+      width: 7px;
+      height: 7px;
       background-color: #10b981;
       border-radius: 50%;
-      position: relative;
-    }
-    .pulse-dot::after {
-      content: '';
-      position: absolute;
-      top: -3px;
-      left: -3px;
-      width: 14px;
-      height: 14px;
-      border-radius: 50%;
-      background: rgba(16, 185, 129, 0.4);
-      animation: pulse-ring 2s cubic-bezier(0.25, 1, 0.5, 1) infinite;
-    }
-    @keyframes pulse-ring {
-      0% { transform: scale(0.6); opacity: 0.9; }
-      100% { transform: scale(2.2); opacity: 0; }
     }
     .hero-title {
-      font-size: 2.9rem;
+      font-size: 2.5rem;
       font-weight: 700;
-      letter-spacing: -0.035em;
-      line-height: 1.15;
+      letter-spacing: -0.03em;
+      line-height: 1.2;
       color: var(--text-primary);
-      max-width: 820px;
-      margin: 0 auto 1.25rem;
+      max-width: 760px;
+      margin: 0 auto 1rem;
     }
     .hero-title .gradient-text {
-      background: linear-gradient(135deg, #0f172a 0%, #2563eb 50%, #0284c7 100%);
+      background: linear-gradient(135deg, #0f172a 0%, #2563eb 60%, #0284c7 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
     }
     .hero-desc {
-      font-size: 1.12rem;
+      font-size: 1.05rem;
       color: var(--text-muted);
-      max-width: 660px;
-      margin: 0 auto 2rem;
-      line-height: 1.6;
+      max-width: 600px;
+      margin: 0 auto 1.75rem;
+      line-height: 1.55;
     }
-
-    /* Minimalist Animated Pipeline Widget */
     .pipeline-wrapper {
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: var(--radius-lg);
-      padding: 1.75rem;
-      box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
-      margin: 2.5rem auto 3.5rem;
+      padding: 1.5rem;
+      box-shadow: var(--shadow-sm);
+      margin: 2rem auto 3rem;
       max-width: 960px;
       text-align: left;
     }
@@ -89,26 +70,26 @@
       flex-wrap: wrap;
       justify-content: space-between;
       align-items: center;
-      gap: 1rem;
-      margin-bottom: 1.5rem;
-      padding-bottom: 1rem;
+      gap: 0.75rem;
+      margin-bottom: 1.25rem;
+      padding-bottom: 0.75rem;
       border-bottom: 1px solid var(--border);
     }
     .scenario-btn-group {
       display: flex;
-      gap: 0.5rem;
+      gap: 0.4rem;
       flex-wrap: wrap;
     }
     .scenario-btn {
-      font-size: 0.78rem;
+      font-size: 0.76rem;
       font-weight: 500;
-      padding: 0.3rem 0.75rem;
+      padding: 0.25rem 0.7rem;
       border-radius: 9999px;
       border: 1px solid var(--border);
       background: var(--surface-subtle);
       color: var(--text-secondary);
       cursor: pointer;
-      transition: all 0.2s ease;
+      transition: all 0.15s ease;
     }
     .scenario-btn:hover {
       background: var(--border);
@@ -119,14 +100,11 @@
       color: #ffffff;
       border-color: var(--primary);
     }
-
-    /* Track & Stages */
     .pipeline-track {
       display: grid;
       grid-template-columns: repeat(5, 1fr);
-      gap: 0.75rem;
-      position: relative;
-      margin-bottom: 1.25rem;
+      gap: 0.65rem;
+      margin-bottom: 1rem;
     }
     @media (max-width: 768px) {
       .pipeline-track {
@@ -137,53 +115,42 @@
       background: var(--surface-subtle);
       border: 1px solid var(--border);
       border-radius: var(--radius);
-      padding: 0.9rem;
-      position: relative;
-      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      padding: 0.75rem;
+      transition: all 0.2s ease;
     }
     .pipeline-stage.stage-active {
       border-color: var(--accent);
       background: #eff6ff;
-      transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.12);
     }
     .pipeline-stage.stage-blocked {
       border-color: #ef4444;
       background: #fef2f2;
-      transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(239, 68, 68, 0.15);
     }
     .stage-num {
-      font-size: 0.7rem;
+      font-size: 0.68rem;
       font-weight: 700;
       color: var(--text-subtle);
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      margin-bottom: 0.25rem;
+      letter-spacing: 0.04em;
+      margin-bottom: 0.2rem;
     }
     .stage-title {
-      font-size: 0.85rem;
+      font-size: 0.82rem;
       font-weight: 600;
       color: var(--text-primary);
-      margin-bottom: 0.25rem;
-      display: flex;
-      align-items: center;
-      gap: 0.4rem;
+      margin-bottom: 0.2rem;
     }
     .stage-sub {
       font-size: 0.72rem;
       color: var(--text-muted);
       line-height: 1.35;
     }
-
-    /* Live Tracer Bar */
     .tracer-bar {
-      height: 4px;
+      height: 3px;
       background: #e2e8f0;
       border-radius: 9999px;
       position: relative;
       overflow: hidden;
-      margin-bottom: 1.25rem;
+      margin-bottom: 1rem;
     }
     .tracer-packet {
       position: absolute;
@@ -192,11 +159,11 @@
       width: 25%;
       border-radius: 9999px;
       background: linear-gradient(90deg, transparent, #2563eb, transparent);
-      animation: trace-flow 2.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+      animation: trace-flow 2s ease infinite;
     }
     .tracer-packet.packet-block {
       background: linear-gradient(90deg, transparent, #ef4444, transparent);
-      width: 40%;
+      width: 35%;
     }
     @keyframes trace-flow {
       0% { left: -30%; opacity: 0; }
@@ -204,41 +171,34 @@
       80% { opacity: 1; }
       100% { left: 110%; opacity: 0; }
     }
-
-    /* Pipeline Status Banner */
     .pipeline-status-banner {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 0.75rem 1rem;
+      padding: 0.6rem 0.9rem;
       border-radius: var(--radius);
       background: var(--surface-subtle);
       border: 1px solid var(--border);
-      font-size: 0.82rem;
+      font-size: 0.8rem;
     }
-
-    /* Interactive Simulator */
     .sim-box {
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: var(--radius-lg);
-      box-shadow: var(--shadow);
-      padding: 2.25rem;
+      padding: 1.75rem;
     }
     .result-card {
       background: var(--surface-subtle);
       border: 1px solid var(--border);
-      border-radius: var(--radius-lg);
-      padding: 2rem 1.5rem;
+      border-radius: var(--radius);
+      padding: 1.5rem;
       text-align: center;
-      position: relative;
-      overflow: hidden;
     }
     .gauge-container {
       position: relative;
-      width: 140px;
-      height: 140px;
-      margin: 0 auto 1rem;
+      width: 120px;
+      height: 120px;
+      margin: 0 auto 0.75rem;
     }
     .gauge-svg {
       transform: rotate(-90deg);
@@ -256,25 +216,22 @@
       stroke-linecap: round;
       stroke-dasharray: 377;
       stroke-dashoffset: 300;
-      transition: stroke-dashoffset 0.5s cubic-bezier(0.16, 1, 0.3, 1), stroke 0.4s ease;
+      transition: stroke-dashoffset 0.4s ease, stroke 0.3s ease;
     }
     .gauge-value {
       position: absolute;
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      font-size: 2.1rem;
+      font-size: 1.8rem;
       font-weight: 700;
       color: var(--text-primary);
-      letter-spacing: -0.03em;
     }
-
-    /* Stats strip */
     .metrics-bar {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
-      gap: 1.25rem;
-      margin-bottom: 3.5rem;
+      gap: 1rem;
+      margin-bottom: 2.5rem;
     }
     @media (max-width: 768px) {
       .metrics-bar {
@@ -285,57 +242,30 @@
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: var(--radius);
-      padding: 1.25rem;
+      padding: 1rem;
       text-align: center;
-      box-shadow: var(--shadow-sm);
-      transition: transform 0.2s ease;
-    }
-    .metric-item:hover {
-      transform: translateY(-2px);
     }
     .metric-val {
-      font-size: 1.6rem;
+      font-size: 1.4rem;
       font-weight: 700;
       color: var(--text-primary);
-      letter-spacing: -0.02em;
     }
     .metric-lbl {
-      font-size: 0.78rem;
+      font-size: 0.75rem;
       color: var(--text-muted);
-      margin-top: 0.25rem;
+      margin-top: 0.2rem;
     }
-
-    /* Features Cards */
     .feature-card {
       background: var(--surface);
       border: 1px solid var(--border);
-      border-radius: var(--radius-lg);
-      padding: 1.6rem;
-      height: 100%;
-      box-shadow: var(--shadow-sm);
-      transition: all 0.25s ease;
-    }
-    .feature-card:hover {
-      transform: translateY(-3px);
-      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08);
-      border-color: #cbd5e1;
-    }
-    .feature-icon {
-      width: 2.5rem;
-      height: 2.5rem;
-      display: flex;
-      align-items: center;
-      justify-content: center;
       border-radius: var(--radius);
-      background: var(--surface-subtle);
-      border: 1px solid var(--border);
-      margin-bottom: 1.15rem;
-      font-size: 1.15rem;
+      padding: 1.25rem;
+      height: 100%;
     }
   </style>
 </head>
 <body>
-  <!-- Clean Navbar -->
+  <!-- Navbar -->
   <nav class="navbar navbar-expand topbar">
     <div class="container">
       <a class="navbar-brand" href="{{ url_for('index') }}">
@@ -343,11 +273,11 @@
         <span>Smart Cloud Shield</span>
       </a>
       <ul class="navbar-nav ms-auto gap-2 align-items-center">
-        <li class="nav-item d-none d-sm-block"><a class="nav-link" href="#pipeline">Live Pipeline</a></li>
-        <li class="nav-item d-none d-sm-block"><a class="nav-link" href="#simulator">Risk Simulator</a></li>
-        <li class="nav-item"><a class="nav-link" href="#logins">Accounts</a></li>
+        <li class="nav-item d-none d-sm-block"><a class="nav-link" href="#pipeline">Pipeline</a></li>
+        <li class="nav-item d-none d-sm-block"><a class="nav-link" href="#simulator">Simulator</a></li>
+        <li class="nav-item"><a class="nav-link" href="#accounts">Accounts</a></li>
         {% if current_user.is_authenticated %}
-        <li class="nav-item"><a class="btn btn-sm btn-primary" href="{{ url_for('files') }}">Go to Files</a></li>
+        <li class="nav-item"><a class="btn btn-sm btn-primary" href="{{ url_for('files') }}">Vault</a></li>
         {% else %}
         <li class="nav-item"><a class="btn btn-sm btn-outline-secondary" href="{{ url_for('login') }}">Sign In</a></li>
         <li class="nav-item"><a class="btn btn-sm btn-primary" href="{{ url_for('register') }}">Register</a></li>
@@ -357,189 +287,177 @@
   </nav>
 
   <main class="container">
-    <!-- Hero Section -->
+    <!-- Hero -->
     <section class="hero-section">
       <div class="hero-pill">
         <span class="pulse-dot"></span>
-        <span>Zero-Trust &amp; GenAI Threat Defense</span>
+        <span>Download risk evaluation</span>
       </div>
       <h1 class="hero-title">
-        Enterprise data security that <span class="gradient-text">dynamically stops</span> unauthorized leaks.
+        Encrypted file storage with <span class="gradient-text">risk-scored downloads</span>
       </h1>
       <p class="hero-desc">
-        Smart Cloud Shield replaces static cloud permissions with real-time zero-trust intelligence. Every file is protected by Fernet Envelope Encryption and evaluated across a 4-pillar behavioral risk engine before any download is allowed.
+        Files stay encrypted with AES-128 envelope keys. Each download is verified against classification, velocity, access hour, and anomaly detection before keys are released.
       </p>
-      <div class="d-flex justify-content-center gap-3">
+      <div class="d-flex justify-content-center gap-2">
         {% if current_user.is_authenticated %}
-        <a href="{{ url_for('files') }}" class="btn btn-primary px-4 py-2">Open File Vault</a>
+        <a href="{{ url_for('files') }}" class="btn btn-primary px-3 py-2">Open files</a>
         {% else %}
-        <a href="{{ url_for('login') }}" class="btn btn-primary px-4 py-2">Sign In to Test</a>
-        <a href="#simulator" class="btn btn-outline-secondary px-4 py-2">Interactive Demo &darr;</a>
+        <a href="{{ url_for('login') }}" class="btn btn-primary px-3 py-2">Sign in</a>
+        <a href="#simulator" class="btn btn-outline-secondary px-3 py-2">Risk calculator</a>
         {% endif %}
       </div>
     </section>
 
-    <!-- Minimalist Animated Visual Pipeline Representation -->
+    <!-- Pipeline -->
     <section id="pipeline" class="pipeline-wrapper">
       <div class="pipeline-header">
         <div>
-          <h2 class="h6 fw-bold mb-1">Zero-Trust Telemetry &amp; Defense Flow</h2>
-          <p class="text-muted small mb-0">Watch how real-time download requests are verified and gated step-by-step.</p>
+          <h2 class="h6 fw-bold mb-0">Evaluation pipeline</h2>
         </div>
         <div class="scenario-btn-group">
-          <button class="scenario-btn active" onclick="setPipelineScenario('normal')">1. Legitimate Work</button>
-          <button class="scenario-btn" onclick="setPipelineScenario('afterhours')">2. Night Access</button>
-          <button class="scenario-btn" onclick="setPipelineScenario('exfil')">3. Bulk Exfiltration Attack</button>
+          <button class="scenario-btn active" onclick="setPipelineScenario('normal')">Normal</button>
+          <button class="scenario-btn" onclick="setPipelineScenario('afterhours')">Off hours</button>
+          <button class="scenario-btn" onclick="setPipelineScenario('exfil')">Exfiltration burst</button>
         </div>
       </div>
 
-      <!-- Animated Stage Cards -->
       <div class="pipeline-track">
         <div class="pipeline-stage" id="stage-1">
-          <div class="stage-num">Stage 01</div>
-          <div class="stage-title"><span>📥</span> Client Request</div>
-          <div class="stage-sub" id="pipe-desc-1">Employee requests file download via authenticated session.</div>
+          <div class="stage-num">01</div>
+          <div class="stage-title">Download request</div>
+          <div class="stage-sub" id="pipe-desc-1">Client initiates download.</div>
         </div>
 
         <div class="pipeline-stage" id="stage-2">
-          <div class="stage-num">Stage 02</div>
-          <div class="stage-title"><span>🔍</span> DLP &amp; Clearance</div>
-          <div class="stage-sub" id="pipe-desc-2">Aadhaar/Luhn/PAN scan verifies file classification vs user clearance.</div>
+          <div class="stage-num">02</div>
+          <div class="stage-title">Clearance check</div>
+          <div class="stage-sub" id="pipe-desc-2">Matches user clearance against file tag.</div>
         </div>
 
         <div class="pipeline-stage" id="stage-3">
-          <div class="stage-num">Stage 03</div>
-          <div class="stage-title"><span>🤖</span> ML Behavior Model</div>
-          <div class="stage-sub" id="pipe-desc-3">Isolation Forest checks volume, velocity &amp; historical telemetry.</div>
+          <div class="stage-num">03</div>
+          <div class="stage-title">Anomaly model</div>
+          <div class="stage-sub" id="pipe-desc-3">Evaluates download rate and history.</div>
         </div>
 
         <div class="pipeline-stage" id="stage-4">
-          <div class="stage-num">Stage 04</div>
-          <div class="stage-title"><span>🛡️</span> Risk Scoring</div>
-          <div class="stage-sub" id="pipe-desc-4">4-pillar score synthesizes Sensitivity + Velocity + Context + ML.</div>
+          <div class="stage-num">04</div>
+          <div class="stage-title">Risk score</div>
+          <div class="stage-sub" id="pipe-desc-4">Calculates score from 0 to 100.</div>
         </div>
 
         <div class="pipeline-stage" id="stage-5">
-          <div class="stage-num">Stage 05</div>
-          <div class="stage-title"><span>⚡</span> Dynamic Release</div>
-          <div class="stage-sub" id="pipe-desc-5">Envelope DEK unwrapped with Master KEK to deliver file.</div>
+          <div class="stage-num">05</div>
+          <div class="stage-title">Key release</div>
+          <div class="stage-sub" id="pipe-desc-5">Unwraps DEK and serves bytes.</div>
         </div>
       </div>
 
-      <!-- Minimalist Flow Tracer Bar -->
       <div class="tracer-bar">
         <div class="tracer-packet" id="tracerPacket"></div>
       </div>
 
-      <!-- Live Dynamic Banner Output -->
       <div class="pipeline-status-banner">
         <div class="d-flex align-items-center gap-2">
           <strong id="pipeStatusBadge" class="chip badge-allowed">ALLOWED</strong>
-          <span id="pipeStatusDetail" class="text-secondary">Normal daytime download on recognized laptop. Risk Score: <strong>18 / 100</strong> (Low Risk).</span>
+          <span id="pipeStatusDetail" class="text-secondary">Normal daytime request. Risk score: 18/100.</span>
         </div>
-        <div class="text-muted small d-none d-md-block mono-font" id="pipeLatency">&lt; 8.2 ms verification</div>
+        <div class="text-muted small mono-font" id="pipeLatency">&lt; 10 ms</div>
       </div>
     </section>
 
-    <!-- Key Metrics Strip -->
+    <!-- Key Metrics -->
     <section class="metrics-bar">
       <div class="metric-item">
-        <div class="metric-val">0 Plaintext</div>
-        <div class="metric-lbl">Unique AES-128 DEK per file + Master KEK outside DB</div>
+        <div class="metric-val">AES-128</div>
+        <div class="metric-lbl">Envelope encryption per file</div>
       </div>
       <div class="metric-item">
         <div class="metric-val">&lt; 10 ms</div>
-        <div class="metric-lbl">Multi-factor behavioral risk decision latency</div>
+        <div class="metric-lbl">Risk decision latency</div>
       </div>
       <div class="metric-item">
-        <div class="metric-val">100% Chain</div>
-        <div class="metric-lbl">SHA-256 tamper-evident cryptographic audit ledger</div>
+        <div class="metric-val">SHA-256</div>
+        <div class="metric-lbl">Chained audit ledger</div>
       </div>
       <div class="metric-item">
-        <div class="metric-val">34 / 34</div>
-        <div class="metric-lbl">Passing test cases covering DLP, crypto &amp; ML</div>
+        <div class="metric-val">35 / 35</div>
+        <div class="metric-lbl">Automated tests passed</div>
       </div>
     </section>
 
     <!-- 3 Core Pillars -->
-    <section class="mb-5">
-      <div class="row g-4">
+    <section class="mb-4">
+      <div class="row g-3">
         <div class="col-md-4">
           <div class="feature-card">
-            <div class="feature-icon">🔍</div>
-            <h2 class="h6 fw-bold mb-2">Automated DLP &amp; OCR Inspection</h2>
+            <h2 class="h6 fw-bold mb-1">DLP inspection</h2>
             <p class="text-muted small mb-0">
-              Scans documents on upload for Verhoeff-validated Aadhaar IDs, Luhn payment cards, PAN numbers, and private keys. Categorizes sensitivity without manual tagging.
+              Scans files on upload for Aadhaar, credit cards, PAN numbers, and keys.
             </p>
           </div>
         </div>
         <div class="col-md-4">
           <div class="feature-card">
-            <div class="feature-icon">⚡</div>
-            <h2 class="h6 fw-bold mb-2">4-Pillar Behavioral Risk Engine</h2>
+            <h2 class="h6 fw-bold mb-1">Risk evaluation</h2>
             <p class="text-muted small mb-0">
-              Calculates a composite score across File Sensitivity (30), Velocity (20), Device/Time Context (25), and Isolation Forest ML Anomalies (25) for every download.
+              Scores requests by sensitivity, request volume, device, and anomaly detection.
             </p>
           </div>
         </div>
         <div class="col-md-4">
           <div class="feature-card">
-            <div class="feature-icon">🛡️</div>
-            <h2 class="h6 fw-bold mb-2">Adaptive Defense &amp; Zero-Leakage</h2>
+            <h2 class="h6 fw-bold mb-1">Access decisions</h2>
             <p class="text-muted small mb-0">
-              Low risks pass instantly. Elevated risks trigger alert emails, while high-risk exfiltration attempts are blocked and accounts auto-restricted in real time.
+              Permits normal downloads, sends email alerts for elevated risk, and halts abuse.
             </p>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- Interactive Simulator with Smooth SVG Radial Gauge -->
-    <section id="simulator" class="mb-5">
+    <!-- Simulator -->
+    <section id="simulator" class="mb-4">
       <div class="sim-box">
-        <div class="mb-4">
-          <h2 class="h5 fw-bold mb-1">Interactive Risk Calculator</h2>
-          <p class="text-muted small mb-0">Test how the Zero-Trust scoring engine evaluates a download attempt based on telemetry inputs.</p>
+        <div class="mb-3">
+          <h2 class="h6 fw-bold mb-1">Risk calculator</h2>
+          <p class="text-muted small mb-0">Calculate score based on request parameters.</p>
         </div>
 
         <div class="row g-4 align-items-center">
           <div class="col-lg-7">
             <div class="mb-3">
-              <label class="form-label">Document Sensitivity</label>
-              <select id="simSensitivity" class="form-select">
-                <option value="0">Public (Marketing assets, public guides) — 0 pts</option>
-                <option value="8">Internal (Standard business memos, docs) — 8 pts</option>
-                <option value="18" selected>Confidential (Financial sheets, customer data) — 18 pts</option>
-                <option value="30">Highly Confidential (Private keys, employee PII) — 30 pts</option>
+              <label class="form-label small fw-semibold" for="simSensitivity">Sensitivity</label>
+              <select id="simSensitivity" class="form-select form-select-sm">
+                <option value="0">Public (0 pts)</option>
+                <option value="8">Internal (8 pts)</option>
+                <option value="18" selected>Confidential (18 pts)</option>
+                <option value="30">Highly confidential (30 pts)</option>
               </select>
             </div>
 
             <div class="mb-3">
-              <label class="form-label d-flex justify-content-between">
-                <span>Recent Download Volume (1-Hour Sliding Window)</span>
-                <span id="volLabel" class="fw-bold text-dark">3 downloads</span>
+              <label class="form-label small fw-semibold d-flex justify-content-between">
+                <span>Recent downloads (1 hour)</span>
+                <span id="volLabel" class="text-dark">3 downloads</span>
               </label>
               <input type="range" class="form-range" id="simVolume" min="1" max="25" value="3">
-              <div class="d-flex justify-content-between text-muted" style="font-size: 0.75rem;">
-                <span>1 (Single file)</span>
-                <span>8 (Busy day)</span>
-                <span>25 (Bulk exfiltration)</span>
-              </div>
             </div>
 
             <div class="row g-2 mb-3">
               <div class="col-sm-6">
-                <label class="form-label">Access Time</label>
-                <select id="simTime" class="form-select">
-                  <option value="0" selected>Working Hours (10:00 AM - 06:00 PM)</option>
-                  <option value="10">After Hours (02:00 AM Midnight) (+10 pts)</option>
+                <label class="form-label small fw-semibold" for="simTime">Time</label>
+                <select id="simTime" class="form-select form-select-sm">
+                  <option value="0" selected>Work hours</option>
+                  <option value="10">After hours (+10 pts)</option>
                 </select>
               </div>
               <div class="col-sm-6">
-                <label class="form-label">Device Context</label>
-                <select id="simDevice" class="form-select">
-                  <option value="0" selected>Known Trusted Device</option>
-                  <option value="15">Unrecognized / New Device (+15 pts)</option>
+                <label class="form-label small fw-semibold" for="simDevice">Device</label>
+                <select id="simDevice" class="form-select form-select-sm">
+                  <option value="0" selected>Known device</option>
+                  <option value="15">New device (+15 pts)</option>
                 </select>
               </div>
             </div>
@@ -547,15 +465,14 @@
             <div class="form-check form-switch">
               <input class="form-check-input" type="checkbox" id="simAnomaly">
               <label class="form-check-label small text-muted" for="simAnomaly">
-                Simulate Isolation Forest ML Behavioral Anomaly (+25 pts)
+                Behavioral anomaly (+25 pts)
               </label>
             </div>
           </div>
 
-          <!-- Minimalist Animated Radial Gauge -->
           <div class="col-lg-5">
             <div class="result-card">
-              <div class="text-muted small text-uppercase fw-semibold mb-3">Evaluated Risk Score</div>
+              <div class="text-muted small fw-semibold mb-2">Calculated score</div>
               
               <div class="gauge-container">
                 <svg class="gauge-svg" viewBox="0 0 140 140">
@@ -565,11 +482,11 @@
                 <div class="gauge-value" id="simScore">18</div>
               </div>
 
-              <div class="mb-3">
-                <span id="simOutcomeBadge" class="chip badge-allowed fs-6 py-1 px-3">ALLOWED</span>
+              <div class="mb-2">
+                <span id="simOutcomeBadge" class="chip badge-allowed py-1 px-3">ALLOWED</span>
               </div>
               <p class="small text-muted mb-0" id="simExplanation">
-                Normal download within policy thresholds. Allowed immediately.
+                Low risk score. Download allowed immediately.
               </p>
             </div>
           </div>
@@ -577,13 +494,13 @@
       </div>
     </section>
 
-    <!-- Demo Logins -->
-    <section id="logins" class="mb-5">
+    <!-- Demo Accounts -->
+    <section id="accounts" class="mb-4">
       <div class="panel">
         <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
           <div>
-            <h2 class="h6 fw-bold mb-1">Pre-configured Demo Accounts</h2>
-            <p class="text-muted small mb-0">Use any of these demo accounts to test different roles and permissions.</p>
+            <h2 class="h6 fw-bold mb-0">Demo accounts</h2>
+            <div class="text-muted small">Pre-configured accounts for testing roles and clearances.</div>
           </div>
           <a href="{{ url_for('login') }}" class="btn btn-sm btn-primary">Sign In</a>
         </div>
@@ -596,51 +513,51 @@
                 <th>Role</th>
                 <th>Department</th>
                 <th>Clearance</th>
-                <th>Access Scope &amp; Behavior</th>
+                <th>Scope</th>
               </tr>
             </thead>
             <tbody>
               <tr>
                 <td><strong>admin</strong></td>
                 <td><span class="chip chip-ok">Admin</span></td>
-                <td>IT / Security</td>
-                <td>Level 3 (Top Secret)</td>
-                <td>Full SIEM dashboard, AI forensics, cryptographic sandbox, quarantine control</td>
+                <td>IT</td>
+                <td>L3 &bull; Top Secret</td>
+                <td class="small text-muted">Full dashboard, alerts, audit log</td>
               </tr>
               <tr>
                 <td><strong>alice</strong></td>
                 <td><span class="chip chip-muted">Employee</span></td>
                 <td>Finance</td>
-                <td>Level 3 (Secret)</td>
-                <td>Authorized to payroll &amp; financial records; monitored by insider-threat detector</td>
+                <td>L3 &bull; Top Secret</td>
+                <td class="small text-muted">Finance and payroll files</td>
               </tr>
               <tr>
                 <td><strong>bob</strong></td>
                 <td><span class="chip chip-muted">Employee</span></td>
                 <td>HR</td>
-                <td>Level 2 (Confidential)</td>
-                <td>HR files &amp; employee sync notes; blocked from Finance &amp; Engineering secrets</td>
+                <td>L2 &bull; Confidential</td>
+                <td class="small text-muted">HR and personnel files</td>
               </tr>
               <tr>
                 <td><strong>carol</strong></td>
                 <td><span class="chip chip-muted">Employee</span></td>
                 <td>Engineering</td>
-                <td>Level 3 (Secret)</td>
-                <td>Infrastructure credentials, source configs; isolated from HR/Finance</td>
+                <td>L3 &bull; Top Secret</td>
+                <td class="small text-muted">Engineering configs</td>
               </tr>
               <tr>
                 <td><strong>dave</strong></td>
                 <td><span class="chip chip-muted">Employee</span></td>
                 <td>General</td>
-                <td>Level 1 (Internal)</td>
-                <td>General files; receives automatic PII masked copies when accessing confidential files</td>
+                <td>L1 &bull; Internal</td>
+                <td class="small text-muted">General internal files</td>
               </tr>
               <tr>
                 <td><strong>guest1</strong></td>
                 <td><span class="chip chip-warn">Guest</span></td>
                 <td>External</td>
-                <td>Level 0 (Public)</td>
-                <td>Public files only (zero download permissions for any confidential asset)</td>
+                <td>L0 &bull; Public</td>
+                <td class="small text-muted">Public files only</td>
               </tr>
             </tbody>
           </table>
@@ -649,23 +566,19 @@
     </section>
   </main>
 
-  <!-- Clean Footer -->
-  <footer class="container py-4 border-top text-center text-muted small">
-    Smart Cloud Shield &bull; Zero-Trust Cloud DLP &amp; Intelligent Behavioral Threat Defense Platform
+  <footer class="container py-3 border-top text-center text-muted small">
+    Smart Cloud Shield
   </footer>
 
   <script>
-    // -------------------------------------------------------------
-    // Minimalist Interactive Pipeline Controller
-    // -------------------------------------------------------------
     const scenarios = {
       normal: {
         activeStages: [1, 2, 3, 4, 5],
         blockedStage: null,
         statusClass: 'chip badge-allowed',
         statusText: 'ALLOWED',
-        detailText: 'Normal daytime download on recognized laptop. Risk Score: 18 / 100 (Low Risk). File decrypted & released.',
-        latency: '< 8.2 ms verification',
+        detailText: 'Normal daytime request. Risk score: 18/100.',
+        latency: '< 10 ms',
         packetClass: 'tracer-packet'
       },
       afterhours: {
@@ -673,17 +586,17 @@
         blockedStage: null,
         statusClass: 'chip badge-warned',
         statusText: 'WARNED',
-        detailText: 'After-hours access (02:00 AM) on new device. Risk Score: 52 / 100 (Elevated). Allowed with incident alert sent.',
-        latency: '< 12.1 ms verification',
+        detailText: 'Off-hours access on new device. Risk score: 52/100. Alert logged.',
+        latency: '< 12 ms',
         packetClass: 'tracer-packet'
       },
       exfil: {
         activeStages: [1, 2, 3, 4],
         blockedStage: 5,
         statusClass: 'chip badge-blocked',
-        statusText: 'EXFILTRATION BLOCKED',
-        detailText: '13th rapid download in 1 hour with ML behavioral anomaly. Risk Score: 85 / 100 (Critical). Master KEK refused & account quarantined.',
-        latency: '< 6.4 ms instant halt',
+        statusText: 'BLOCKED',
+        detailText: 'Rapid download burst with anomaly. Risk score: 85/100. Access denied.',
+        latency: '< 6 ms',
         packetClass: 'tracer-packet packet-block'
       }
     };
@@ -714,9 +627,6 @@
       document.getElementById('pipeLatency').textContent = sc.latency;
     }
 
-    // -------------------------------------------------------------
-    // Interactive Simulator & Dynamic SVG Radial Gauge
-    // -------------------------------------------------------------
     function recalculate() {
       const sens = parseInt(document.getElementById('simSensitivity').value, 10);
       const vol = parseInt(document.getElementById('simVolume').value, 10);
@@ -724,14 +634,12 @@
       const dev = parseInt(document.getElementById('simDevice').value, 10);
       const anomaly = document.getElementById('simAnomaly').checked ? 25 : 0;
 
-      // Realistic volume formula matching Python risk.py
       let volPts = Math.min(20, Math.max(0, vol - 3) * 2);
-
       const total = Math.min(100, sens + volPts + time + dev + anomaly);
-      document.getElementById('volLabel').textContent = `${vol} download${vol > 1 ? 's' : ''} (+${volPts} pts)`;
+
+      document.getElementById('volLabel').textContent = `${vol} download${vol > 1 ? 's' : ''}`;
       document.getElementById('simScore').textContent = total;
 
-      // Update SVG arc (circumference = 2 * PI * 60 = ~377)
       const circumference = 377;
       const offset = circumference - (total / 100) * circumference;
       const arc = document.getElementById('gaugeArc');
@@ -742,19 +650,19 @@
 
       if (total >= 71) {
         arc.style.stroke = '#ef4444';
-        badge.className = 'chip badge-blocked fs-6 py-1 px-3';
+        badge.className = 'chip badge-blocked py-1 px-3';
         badge.textContent = 'BLOCKED';
-        exp.textContent = 'High-risk anomaly detected. Download halted, incident logged in SIEM, and admin alerted.';
+        exp.textContent = 'High risk score. Download blocked and alert logged.';
       } else if (total >= 31) {
         arc.style.stroke = '#f59e0b';
-        badge.className = 'chip badge-warned fs-6 py-1 px-3';
+        badge.className = 'chip badge-warned py-1 px-3';
         badge.textContent = 'WARNED';
-        exp.textContent = 'Elevated risk context. Download allowed, but flagged with telemetry logged for review.';
+        exp.textContent = 'Elevated risk score. Download allowed and alert recorded.';
       } else {
         arc.style.stroke = '#10b981';
-        badge.className = 'chip badge-allowed fs-6 py-1 px-3';
+        badge.className = 'chip badge-allowed py-1 px-3';
         badge.textContent = 'ALLOWED';
-        exp.textContent = 'Normal activity within policy limits. Cryptographic DEK released immediately.';
+        exp.textContent = 'Low risk score. Download allowed immediately.';
       }
     }
 
@@ -764,7 +672,6 @@
     document.getElementById('simDevice').addEventListener('change', recalculate);
     document.getElementById('simAnomaly').addEventListener('change', recalculate);
     
-    // Initial run
     recalculate();
     setPipelineScenario('normal');
   </script>

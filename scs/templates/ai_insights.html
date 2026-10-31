@@ -4,19 +4,19 @@
 <!-- Page Header -->
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
   <div>
-    <h1 class="h4 mb-0 fw-bold">AI Threat Intelligence Hub</h1>
-    <div class="small text-muted">Automated log intelligence, posture evaluation, and incident forensics</div>
+    <h1 class="h4 mb-0 fw-bold">AI threat intelligence</h1>
+    <div class="small text-muted">Telemetry summary and posture evaluation</div>
   </div>
   <div class="d-flex flex-wrap gap-2 align-items-center">
     {% if has_gemini %}
-      <span class="chip chip-ok">Live Gemini ({{ model_name }})</span>
+      <span class="chip chip-ok">Gemini API ({{ model_name }})</span>
     {% else %}
-      <span class="chip chip-muted">Local NLP Engine</span>
+      <span class="chip chip-muted">Local NLP</span>
     {% endif %}
     {% if smtp_configured %}
-      <span class="chip chip-ok">SMTP Active</span>
+      <span class="chip chip-ok">SMTP active</span>
     {% else %}
-      <span class="chip chip-muted">Dev Outbox</span>
+      <span class="chip chip-muted">Dev outbox</span>
     {% endif %}
     <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary btn-sm">&larr; Dashboard</a>
   </div>
@@ -26,7 +26,7 @@
 <div class="panel mb-4">
   <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
     <div class="d-flex align-items-center gap-2">
-      <span class="small fw-semibold text-muted text-uppercase">Time Window:</span>
+      <span class="small fw-semibold text-muted text-uppercase">Time window:</span>
       <div class="btn-group btn-group-sm" role="group" id="windowBtnGroup">
         <button type="button" class="btn btn-outline-secondary" data-hours="6">6 Hours</button>
         <button type="button" class="btn btn-primary active" data-hours="24">24 Hours</button>
@@ -37,9 +37,9 @@
     <div class="d-flex gap-2">
       <button id="btnGenerateSummary" class="btn btn-primary btn-sm d-flex align-items-center gap-1">
         <span id="genSpinner" class="spinner-border spinner-border-sm d-none" role="status"></span>
-        <span id="genBtnText">Generate Summary</span>
+        <span id="genBtnText">Generate summary</span>
       </button>
-      <button id="btnCopyReport" class="btn btn-outline-secondary btn-sm" disabled>Copy Markdown</button>
+      <button id="btnCopyReport" class="btn btn-outline-secondary btn-sm" disabled>Copy markdown</button>
       <button id="btnDownloadReport" class="btn btn-outline-secondary btn-sm" disabled>Download</button>
     </div>
   </div>
@@ -49,7 +49,7 @@
 <div class="row g-3 mb-4" id="postureRow" style="display: none;">
   <div class="col-md-4">
     <div class="panel h-100 d-flex flex-column justify-content-center">
-      <div class="text-muted small text-uppercase fw-semibold mb-1">Security Posture Score</div>
+      <div class="text-muted small text-uppercase fw-semibold mb-1">Security posture score</div>
       <div class="d-flex align-items-baseline gap-2">
         <span class="display-6 fw-bold" id="postureScore">--</span>
         <span class="text-muted fs-5">/ 100</span>
@@ -60,7 +60,7 @@
   </div>
   <div class="col-md-8">
     <div class="panel h-100">
-      <div class="text-muted small text-uppercase fw-semibold mb-2">Analysis Engine & Timestamp</div>
+      <div class="text-muted small text-uppercase fw-semibold mb-2">Engine details</div>
       <div class="row g-2 small">
         <div class="col-sm-6">
           <div class="p-2 border rounded bg-light">
@@ -82,19 +82,19 @@
 <!-- Summary Content Area -->
 <div class="panel mb-4">
   <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
-    <h2 class="h6 mb-0 fw-bold">Telemetry Summary</h2>
-    <span id="reportStatusBadge" class="chip chip-muted">Awaiting Generation</span>
+    <h2 class="h6 mb-0 fw-bold">Telemetry summary</h2>
+    <span id="reportStatusBadge" class="chip chip-muted">Pending</span>
   </div>
 
   <div id="aiLoading" class="text-center py-5 d-none">
     <div class="spinner-border spinner-border-sm text-primary mb-2" role="status"></div>
-    <div class="fw-semibold small">Synthesizing logs and assessing download patterns...</div>
+    <div class="fw-semibold small">Evaluating logs and download patterns...</div>
   </div>
 
   <div id="aiEmptyState" class="text-center py-5 text-muted">
-    <div class="fw-semibold mb-1">No AI Summary Generated Yet</div>
-    <p class="small text-muted mb-3">Click <strong>"Generate Summary"</strong> above to inspect recent activity.</p>
-    <button class="btn btn-outline-secondary btn-sm" onclick="document.getElementById('btnGenerateSummary').click()">Generate Now</button>
+    <div class="fw-semibold mb-1">No summary generated</div>
+    <p class="small text-muted mb-3">Click <strong>Generate summary</strong> to inspect recent activity.</p>
+    <button class="btn btn-outline-secondary btn-sm" onclick="document.getElementById('btnGenerateSummary').click()">Generate now</button>
   </div>
 
   <div id="aiReportBox" class="d-none">

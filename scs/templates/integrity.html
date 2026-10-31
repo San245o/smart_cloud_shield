@@ -4,14 +4,14 @@
 <div class="panel mb-4">
   <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
     <div>
-      <h1 class="h6 mb-1 text-dark fw-bold">Cloud Storage Integrity Check</h1>
+      <h1 class="h6 mb-1 text-dark fw-bold">Cloud storage integrity check</h1>
       <p class="text-muted small mb-0">
-        Verifies checksums and decryption keys across all encrypted files stored in the cloud.
+        Verifies checksums and decryption keys across encrypted files.
       </p>
     </div>
     <form method="post" action="{{ url_for('integrity_check') }}" class="m-0">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <button class="btn btn-primary btn-sm">Run Verification</button>
+      <button class="btn btn-primary btn-sm">Run verification</button>
     </form>
   </div>
 </div>
@@ -19,21 +19,21 @@
 <div class="row g-3 mb-4">
   <div class="col-md-4">
     <div class="panel text-center py-3">
-      <div class="text-muted small text-uppercase fw-semibold">Total Stored Files</div>
+      <div class="text-muted small text-uppercase fw-semibold">Stored files</div>
       <div class="display-6 fw-bold text-dark mt-1">{{ total }}</div>
-      <div class="small text-muted mt-1">Objects tracked in storage layer</div>
+      <div class="small text-muted mt-1">Objects in storage</div>
     </div>
   </div>
   <div class="col-md-4">
     <div class="panel text-center py-3">
-      <div class="text-muted small text-uppercase fw-semibold">Integrity Verified</div>
+      <div class="text-muted small text-uppercase fw-semibold">Integrity verified</div>
       <div class="display-6 fw-bold text-success mt-1">{{ ok_count }}</div>
-      <div class="small text-success mt-1">Cryptographic checksum matched</div>
+      <div class="small text-success mt-1">Checksum matched</div>
     </div>
   </div>
   <div class="col-md-4">
     <div class="panel text-center py-3">
-      <div class="text-muted small text-uppercase fw-semibold">Corrupted / Tampered</div>
+      <div class="text-muted small text-uppercase fw-semibold">Corrupted or altered</div>
       <div class="display-6 fw-bold {{ 'text-danger' if tampered_count > 0 else 'text-muted' }} mt-1">{{ tampered_count }}</div>
       <div class="small {{ 'text-danger fw-semibold' if tampered_count > 0 else 'text-muted' }} mt-1">
         {{ 'Anomalies detected' if tampered_count > 0 else 'Zero corruption detected' }}
@@ -44,7 +44,7 @@
 
 <div class="panel">
   <div class="d-flex justify-content-between align-items-center mb-3">
-    <h2 class="h6 mb-0 fw-bold">Storage Block Verification Table</h2>
+    <h2 class="h6 mb-0 fw-bold">Storage verification <span class="visually-hidden">Storage Block Verification Table</span></h2>
     <span class="small text-muted">{{ results|length }} files checked</span>
   </div>
 

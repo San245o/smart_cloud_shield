@@ -1,14 +1,11 @@
 {% extends "base.html" %}
-{% block title %}Secure In-Browser Preview - {{ file.original_name }}{% endblock %}
+{% block title %}Secure In-Browser Preview &bull; {{ file.original_name }}{% endblock %}
 {% block body %}
 <style>
-  /* Strict Anti-Copy & Anti-Selection CSS */
   body, .watermark-container, .preview-content, .preview-img {
     -webkit-user-select: none !important;
     -moz-user-select: none !important;
-    -ms-user-select: none !important;
     user-select: none !important;
-    -webkit-touch-callout: none !important;
   }
   .watermark-container {
     position: relative;
@@ -16,8 +13,8 @@
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius-lg);
-    padding: 1.5rem;
-    min-height: 440px;
+    padding: 1.25rem;
+    min-height: 400px;
   }
   .watermark-overlay {
     position: absolute;
@@ -29,34 +26,32 @@
     align-content: space-around;
     justify-content: space-around;
     transform: rotate(-25deg) translate(-20%, -20%);
-    opacity: 0.07;
+    opacity: 0.05;
     z-index: 10;
     color: #0f172a;
     font-weight: 700;
-    font-size: 1rem;
+    font-size: 0.9rem;
     letter-spacing: 2px;
-    text-transform: uppercase;
   }
   .watermark-item {
-    padding: 30px 40px;
+    padding: 25px 35px;
     white-space: nowrap;
   }
   .preview-content {
     position: relative;
     z-index: 5;
     font-family: 'JetBrains Mono', monospace;
-    font-size: 0.875rem;
+    font-size: 0.85rem;
     color: var(--text-primary);
     white-space: pre-wrap;
     word-break: break-all;
     max-height: 560px;
     overflow-y: auto;
     background: var(--surface-subtle);
-    padding: 1.25rem;
+    padding: 1rem;
     border-radius: var(--radius);
     border: 1px solid var(--border);
-    line-height: 1.6;
-    transition: filter 0.2s ease-in-out;
+    line-height: 1.5;
   }
   .preview-img {
     position: relative;
@@ -66,90 +61,56 @@
     object-fit: contain;
     border-radius: var(--radius);
     border: 1px solid var(--border);
-    transition: filter 0.2s ease-in-out;
   }
-
-  /* Floating DLP Warning Toast */
   #dlpToast {
     position: fixed;
-    top: 20px;
+    top: 16px;
     left: 50%;
     transform: translateX(-50%) translateY(-100px);
     background: #0f172a;
     color: #fca5a5;
     border: 1px solid #ef4444;
-    padding: 10px 22px;
-    border-radius: 30px;
-    font-size: 0.85rem;
+    padding: 8px 18px;
+    border-radius: 20px;
+    font-size: 0.8rem;
     font-weight: 600;
-    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4);
     z-index: 9999;
-    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease;
+    transition: transform 0.2s ease, opacity 0.2s ease;
     opacity: 0;
     pointer-events: none;
-    display: flex;
-    align-items: center;
-    gap: 8px;
   }
   #dlpToast.show {
     transform: translateX(-50%) translateY(0);
     opacity: 1;
   }
-
-  /* Anti-Print Hardening */
   @media print {
-    html, body {
-      display: none !important;
-      visibility: hidden !important;
-    }
+    html, body { display: none !important; }
   }
 </style>
 
-<!-- Floating DLP Notification Toast -->
-<div id="dlpToast">
-  <span style="font-size: 1.1rem;">⚠️</span>
-  <span id="dlpToastMsg">Action prohibited: Document protected by Zero-Trust DLP policy.</span>
-</div>
+<div id="dlpToast">Copy and inspect are disabled on this file.</div>
 
-<div class="panel mb-3">
-  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
-    <div>
-      <div class="d-flex align-items-center gap-2 mb-1">
-        <h1 class="h6 mb-0 fw-bold">{{ file.original_name }}</h1>
-        <span class="chip sens-{{ file.sensitivity }}">{{ file.sensitivity.replace('_', ' ')|capitalize }}</span>
-        {% if is_redacted %}
-        <span class="chip chip-warn">Masked Copy</span>
-        {% endif %}
-      </div>
-      <div class="text-muted small">
-        {{ file.department|capitalize }} &bull; {{ (file.size / 1024)|round(1) }} KB
-      </div>
-    </div>
-    <div class="d-flex gap-2">
-      <a href="{{ url_for('files') }}" class="btn btn-outline-secondary btn-sm">&larr; Back to Files</a>
-      {% if not is_redacted and not file.is_quarantined %}
-      <a href="{{ url_for('download', fid=file.id) }}" class="btn btn-primary btn-sm">Download Raw</a>
-      {% endif %}
-    </div>
-  </div>
-</div>
-
-<!-- DLP Screen Shield Banner -->
-<div class="alert alert-dark d-flex align-items-center justify-content-between py-2 px-3 mb-3 small" style="background: #0f172a; color: #38bdf8; border: 1px solid #1e293b;">
+<div class="d-flex justify-content-between align-items-center mb-3">
   <div class="d-flex align-items-center gap-2">
-    <span class="fs-6">🛡️</span>
-    <span><strong>DLP Shield Enforced:</strong> Clipboard copy/paste, text selection, right-click inspect, and developer tools shortcuts are locked on this document.</span>
+    <h1 class="h6 mb-0 fw-bold">{{ file.original_name }}</h1>
+    <span class="chip sens-{{ file.sensitivity }}">{{ file.sensitivity.replace('_', ' ')|capitalize }}</span>
+    <span class="text-muted small">{{ file.department|capitalize }} &bull; {{ (file.size / 1024)|round(1) }} KB</span>
   </div>
-  <span class="badge bg-secondary-subtle text-info border border-info-subtle">Zero-Trust Protected</span>
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('files') }}" class="btn btn-outline-secondary btn-sm">&larr; Files</a>
+    {% if not is_redacted and not file.is_quarantined %}
+    <a href="{{ url_for('download', fid=file.id) }}" class="btn btn-primary btn-sm">Download</a>
+    {% endif %}
+  </div>
 </div>
 
 {% if is_redacted %}
 <div class="alert alert-info py-2 mb-3 small">
-  <strong>Masked Preview:</strong> Sensitive numbers, payment cards, and credentials have been automatically masked for your clearance level.
+  Masked preview: Sensitive values are hidden for your clearance level.
 </div>
 {% endif %}
 
-<div class="watermark-container mb-3 position-relative">
+<div class="watermark-container mb-3">
   <div class="watermark-overlay" aria-hidden="true">
     {% for _ in range(16) %}
     <div class="watermark-item">{{ watermark_text }}</div>
@@ -158,122 +119,44 @@
 
   {% if image_src %}
   <div class="text-center">
-    <img id="securePreviewImg" src="{{ image_src }}" alt="Secure preview" class="preview-img">
+    <img src="{{ image_src }}" alt="Preview" class="preview-img">
   </div>
   {% else %}
-  <pre id="securePreviewText" class="preview-content mb-0">{{ content_display }}</pre>
+  <pre class="preview-content mb-0">{{ content_display }}</pre>
   {% endif %}
-</div>
-
-<div class="text-muted small text-center">
-  Secure preview &bull; Monitored viewing session for <code>{{ current_user.username }}</code>
 </div>
 
 <script>
 (function() {
   const toast = document.getElementById("dlpToast");
-  const toastMsg = document.getElementById("dlpToastMsg");
-  let toastTimer = null;
+  let timer = null;
 
-  function showDlpToast(message) {
-    if (toastMsg) toastMsg.textContent = message;
+  function notify() {
     if (toast) {
       toast.classList.add("show");
-      clearTimeout(toastTimer);
-      toastTimer = setTimeout(() => {
-        toast.classList.remove("show");
-      }, 2400);
+      clearTimeout(timer);
+      timer = setTimeout(() => toast.classList.remove("show"), 2000);
     }
   }
 
-  // 1. Disable Right-Click Context Menu (Prevents opening inspect menu)
-  document.addEventListener("contextmenu", function(e) {
-    e.preventDefault();
-    showDlpToast("Right-click context menu is locked by DLP policy.");
-    return false;
-  }, false);
+  document.addEventListener("contextmenu", e => { e.preventDefault(); notify(); });
+  document.addEventListener("copy", e => { e.preventDefault(); notify(); });
+  document.addEventListener("cut", e => { e.preventDefault(); notify(); });
+  document.addEventListener("paste", e => e.preventDefault());
+  document.addEventListener("selectstart", e => e.preventDefault());
+  document.addEventListener("dragstart", e => e.preventDefault());
 
-  // 2. Disable Clipboard Copy, Cut, and Paste
-  document.addEventListener("copy", function(e) {
-    e.preventDefault();
-    showDlpToast("Clipboard copy is disabled for confidential documents.");
-    return false;
-  }, false);
-
-  document.addEventListener("cut", function(e) {
-    e.preventDefault();
-    showDlpToast("Clipboard cut is disabled for confidential documents.");
-    return false;
-  }, false);
-
-  document.addEventListener("paste", function(e) {
-    e.preventDefault();
-    return false;
-  }, false);
-
-  // 3. Disable Text Selection & Dragging
-  document.addEventListener("selectstart", function(e) {
-    e.preventDefault();
-    return false;
-  }, false);
-
-  document.addEventListener("dragstart", function(e) {
-    e.preventDefault();
-    return false;
-  }, false);
-
-  // 4. Block Developer Tools & Inspect Keyboard Shortcuts
-  window.addEventListener("keydown", function(e) {
+  window.addEventListener("keydown", e => {
     const isCmdOrCtrl = e.ctrlKey || e.metaKey;
-    const key = e.key ? e.key.toUpperCase() : "";
-    const code = e.code || "";
+    const k = e.key ? e.key.toUpperCase() : "";
 
-    // F12 (DevTools)
-    if (e.key === "F12" || code === "F12") {
+    if (e.key === "F12" || (isCmdOrCtrl && e.shiftKey && (k === "I" || k === "J" || k === "C"))) {
       e.preventDefault();
-      e.stopPropagation();
-      showDlpToast("Developer tools shortcut (F12) is blocked.");
-      return false;
+      notify();
     }
-
-    // Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+Shift+C (Inspect / Console)
-    if (isCmdOrCtrl && e.shiftKey && (key === "I" || key === "J" || key === "C")) {
+    if (isCmdOrCtrl && (k === "U" || k === "S" || k === "P" || k === "C" || k === "A" || k === "X")) {
       e.preventDefault();
-      e.stopPropagation();
-      showDlpToast("Developer inspect shortcuts are disabled.");
-      return false;
-    }
-
-    // Ctrl+U (View Page Source)
-    if (isCmdOrCtrl && key === "U") {
-      e.preventDefault();
-      e.stopPropagation();
-      showDlpToast("Viewing page source is restricted by security policy.");
-      return false;
-    }
-
-    // Ctrl+S (Save Page As)
-    if (isCmdOrCtrl && key === "S") {
-      e.preventDefault();
-      e.stopPropagation();
-      showDlpToast("Saving webpage is restricted for vaulted files.");
-      return false;
-    }
-
-    // Ctrl+P (Print Page)
-    if (isCmdOrCtrl && key === "P") {
-      e.preventDefault();
-      e.stopPropagation();
-      showDlpToast("Printing confidential documents is prohibited.");
-      return false;
-    }
-
-    // Ctrl+C / Ctrl+A (Copy / Select All)
-    if (isCmdOrCtrl && (key === "C" || key === "A" || key === "X")) {
-      e.preventDefault();
-      e.stopPropagation();
-      showDlpToast("Text selection and copy commands are blocked.");
-      return false;
+      notify();
     }
   }, true);
 })();

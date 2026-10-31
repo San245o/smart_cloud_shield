@@ -3,11 +3,11 @@
 {% block body %}
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
   <div>
-    <h1 class="h4 mb-0 fw-bold">Security Incidents</h1>
-    <div class="small text-muted">Flagged download attempts, risk violations, and anomalous activity</div>
+    <h1 class="h4 mb-0 fw-bold">Security incidents</h1>
+    <div class="small text-muted">Flagged download attempts and policy violations</div>
   </div>
   <div class="d-flex gap-2">
-    <a href="{{ url_for('ai_insights') }}" class="btn btn-outline-secondary btn-sm">AI Insights</a>
+    <a href="{{ url_for('ai_insights') }}" class="btn btn-outline-secondary btn-sm">AI insights</a>
     <a href="{{ url_for('dashboard') }}" class="btn btn-primary btn-sm">Dashboard</a>
   </div>
 </div>
@@ -105,12 +105,12 @@
   <div class="ai-modal-dialog">
     <div class="ai-modal-content">
       <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
-        <h5 class="h6 mb-0 fw-bold" id="aiModalTitle">AI Incident Analysis</h5>
+        <h5 class="h6 mb-0 fw-bold" id="aiModalTitle">Incident analysis</h5>
         <button type="button" class="btn-close" id="btnModalClose" aria-label="Close"></button>
       </div>
       <div id="aiModalLoading" class="text-center py-4">
         <div class="spinner-border spinner-border-sm text-primary mb-2" role="status"></div>
-        <div class="small text-muted">Analyzing incident context, behavioral data & root cause...</div>
+        <div class="small text-muted">Analyzing incident context and telemetry...</div>
       </div>
       <div id="aiModalBody" class="d-none small">
         <div id="aiModalText" class="p-3 bg-light rounded border mb-3" style="max-height: 440px; overflow-y: auto; font-size: 0.875rem; line-height: 1.6;"></div>

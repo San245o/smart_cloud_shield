@@ -3,12 +3,12 @@
 <!-- Top Header -->
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
   <div>
-    <h1 class="h4 mb-0 fw-bold">Security Dashboard</h1>
-    <div class="small text-muted">Live telemetry and download risk assessment</div>
+    <h1 class="h4 mb-0 fw-bold">Security dashboard</h1>
+    <div class="small text-muted">Live activity and risk telemetry</div>
   </div>
   <div class="d-flex gap-2">
     <a href="{{ url_for('incidents') }}" class="btn btn-outline-secondary btn-sm">Incidents</a>
-    <a href="{{ url_for('ai_insights') }}" class="btn btn-primary btn-sm">AI Insights Hub</a>
+    <a href="{{ url_for('ai_insights') }}" class="btn btn-primary btn-sm">AI insights</a>
   </div>
 </div>
 
@@ -43,21 +43,15 @@
 <!-- Clearance Elevation Requests Notification Panel -->
 <div class="panel mb-4 border-warning shadow-sm" style="border-left: 4px solid #f59e0b;">
   <div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
-    <div class="d-flex align-items-center gap-2">
-      <span class="fs-5">🔔</span>
-      <div>
-        <h2 class="h6 mb-0 fw-bold">Clearance Elevation Requests (JIT Break-Glass)</h2>
-        <div class="small text-muted">Real-time alerts when users request temporary authorization to access documents above their clearance level</div>
-      </div>
-    </div>
+    <h2 class="h6 mb-0 fw-bold">Clearance elevation requests <span class="visually-hidden">Clearance Elevation Requests</span></h2>
     <div>
       {% if pending_requests %}
-      <span class="badge bg-danger rounded-pill px-3 py-2 fs-6">
-        {{ pending_requests|length }} Pending Review
+      <span class="badge bg-danger rounded-pill px-3 py-1">
+        {{ pending_requests|length }} pending
       </span>
       {% else %}
-      <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-2">
-        ✓ All Access Requests Resolved
+      <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2 py-1 small">
+        No pending requests
       </span>
       {% endif %}
     </div>
@@ -69,11 +63,11 @@
       <thead class="table-light">
         <tr>
           <th>Requester</th>
-          <th>Target Document</th>
-          <th>Clearance Gap</th>
-          <th>Business Justification</th>
-          <th>Requested Window</th>
-          <th class="text-end">Administrator Decision</th>
+          <th>Document</th>
+          <th>Clearance</th>
+          <th>Justification</th>
+          <th>Window</th>
+          <th class="text-end">Decision</th>
         </tr>
       </thead>
       <tbody>
@@ -81,48 +75,37 @@
         <tr>
           <td>
             <div class="fw-bold text-dark">{{ r.user.username }}</div>
-            <div class="small text-muted">{{ r.user.department|capitalize }} Dept</div>
+            <div class="small text-muted">{{ r.user.department|capitalize }}</div>
           </td>
           <td>
             <div class="fw-semibold text-primary">{{ r.file.original_name }}</div>
-            <div class="small text-muted">File #{{ r.file_id }} &bull; {{ (r.file.size / 1024)|round(1) }} KB</div>
+            <div class="small text-muted">{{ (r.file.size / 1024)|round(1) }} KB</div>
           </td>
           <td>
-            <div class="d-flex align-items-center gap-1 small">
-              <span class="chip" style="background: rgba(2, 132, 199, 0.1); color: #0284c7; font-size: 0.72rem;">User: L{{ r.current_clearance }}</span>
-              <span>&rarr;</span>
-              <span class="chip" style="background: rgba(239, 68, 68, 0.1); color: #dc2626; font-size: 0.72rem; font-weight: bold;">Needs: L{{ r.requested_clearance }}</span>
-            </div>
+            <span class="chip" style="font-size: 0.72rem;">L{{ r.current_clearance }} &rarr; L{{ r.requested_clearance }}</span>
           </td>
           <td style="max-width: 280px;">
-            <div class="small p-2 bg-light rounded border text-secondary" style="font-style: italic;">
-              &ldquo;{{ r.justification }}&rdquo;
-            </div>
-            <div class="text-muted" style="font-size: 0.7rem; margin-top: 3px;">
-              Submitted {{ r.created_at.strftime('%Y-%m-%d %H:%M UTC') }}
+            <div class="small text-secondary">
+              {{ r.justification }}
             </div>
           </td>
           <td>
             <span class="badge bg-light text-dark border">
-              ⏱️ {{ r.duration_hours }} Hours
+              {{ r.duration_hours }}h
             </span>
           </td>
           <td class="text-end text-nowrap">
             <div class="d-inline-flex gap-2">
               <form method="post" action="{{ url_for('admin.approve_access_request', rid=r.id) }}" class="d-inline">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button type="submit" class="btn btn-sm btn-success fw-bold d-inline-flex align-items-center gap-1"
-                        onclick="return confirm('Approve temporary clearance for {{ r.user.username }} ({{ r.duration_hours }} hours)?')">
-                  <span>✓</span>
-                  <span>Yes (Approve)</span>
+                <button type="submit" class="btn btn-sm btn-success fw-semibold">
+                  Yes (Approve)
                 </button>
               </form>
               <form method="post" action="{{ url_for('admin.reject_access_request', rid=r.id) }}" class="d-inline">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button type="submit" class="btn btn-sm btn-danger fw-bold d-inline-flex align-items-center gap-1"
-                        onclick="return confirm('Reject elevation request from {{ r.user.username }}?')">
-                  <span>✕</span>
-                  <span>No (Reject)</span>
+                <button type="submit" class="btn btn-sm btn-outline-danger">
+                  No (Reject)
                 </button>
               </form>
             </div>
@@ -133,8 +116,8 @@
     </table>
   </div>
   {% else %}
-  <div class="p-3 bg-light rounded text-center small text-muted">
-    No pending elevation requests. All zero-trust departmental and clearance boundaries are fully enforced.
+  <div class="text-muted small py-2">
+    No pending elevation requests.
   </div>
   {% endif %}
 </div>
@@ -144,20 +127,17 @@
   <!-- AI Summary Card -->
   <div class="col-lg-7">
     <div class="panel h-100">
-      <div class="d-flex justify-content-between align-items-center mb-2">
-        <h2 class="h6 mb-0 fw-bold">AI Threat Summary</h2>
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="h6 mb-0 fw-bold">AI threat summary</h2>
         <span id="dashAiEngineBadge" class="chip chip-muted">Checking AI...</span>
       </div>
-      <p class="small text-muted mb-3">
-        Automated synthesis of recent file events, behavioral anomalies, and policy triggers.
-      </p>
 
       <div class="d-flex gap-2 mb-3">
         <button id="btnDashGenAi" class="btn btn-primary btn-sm d-flex align-items-center gap-1">
           <span id="dashAiSpinner" class="spinner-border spinner-border-sm d-none"></span>
-          <span>Generate 24h Summary</span>
+          <span>Generate summary</span>
         </button>
-        <a href="{{ url_for('ai_insights') }}" class="btn btn-outline-secondary btn-sm">Open AI Hub &rarr;</a>
+        <a href="{{ url_for('ai_insights') }}" class="btn btn-outline-secondary btn-sm">AI hub &rarr;</a>
       </div>
 
       <!-- Quick AI Preview Box -->
@@ -174,19 +154,15 @@
   <!-- Email Alerts Card -->
   <div class="col-lg-5">
     <div class="panel h-100">
-      <div class="d-flex justify-content-between align-items-center mb-2">
-        <h2 class="h6 mb-0 fw-bold">Alert Dispatches</h2>
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="h6 mb-0 fw-bold">Alert delivery</h2>
         <span id="dashSmtpBadge" class="chip chip-muted">Checking SMTP...</span>
       </div>
-      <p class="small text-muted mb-3">
-        Sends MFA codes, high-risk incident alerts, and account lock warnings.
-      </p>
 
       <div class="mb-3">
-        <label for="testEmailInput" class="form-label small text-muted">Test Dispatch Delivery:</label>
         <div class="input-group input-group-sm">
           <input type="email" id="testEmailInput" class="form-control" placeholder="admin@domain.com" value="{{ current_user.email }}">
-          <button id="btnSendTestEmail" class="btn btn-outline-secondary">Send Test</button>
+          <button id="btnSendTestEmail" class="btn btn-outline-secondary">Send test</button>
         </div>
         <div id="emailTestFeedback" class="small mt-2 d-none"></div>
       </div>
@@ -209,13 +185,13 @@
 <div class="row g-3 mb-4">
   <div class="col-md-5">
     <div class="panel h-100">
-      <h2 class="h6 fw-bold mb-3">Download Outcomes</h2>
+      <h2 class="h6 fw-bold mb-3">Download outcomes</h2>
       <div class="chartbox"><canvas id="outcomeChart"></canvas></div>
     </div>
   </div>
   <div class="col-md-7">
     <div class="panel h-100">
-      <h2 class="h6 fw-bold mb-3">Risk Trend (0 to 100)</h2>
+      <h2 class="h6 fw-bold mb-3">Risk trend (0 to 100)</h2>
       <div class="chartbox"><canvas id="riskChart"></canvas></div>
     </div>
   </div>
@@ -224,7 +200,7 @@
 <!-- Recent Activity Table -->
 <div class="panel mb-4">
   <div class="d-flex justify-content-between align-items-center mb-3">
-    <h2 class="h6 fw-bold mb-0">Recent Downloads</h2>
+    <h2 class="h6 fw-bold mb-0">Recent downloads</h2>
     <span class="small text-muted">Auto-refreshes every 5s</span>
   </div>
   <div class="table-responsive">
@@ -248,8 +224,8 @@
 <div class="panel">
   <details>
     <summary class="fw-semibold text-secondary d-flex align-items-center justify-content-between">
-      <span>Key Management & Cryptographic Diagnostics</span>
-      <span class="badge bg-light text-muted border">Expand Diagnostics</span>
+      <span>Cryptographic diagnostics</span>
+      <span class="badge bg-light text-muted border">Diagnostics</span>
     </summary>
     <div class="pt-3 mt-2 border-top">
       <div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
@@ -261,7 +237,7 @@
           <span class="chip chip-muted" id="cryptoKekBadge">KEK: Active</span>
           <button id="btnRunCryptoBench" class="btn btn-outline-secondary btn-sm">
             <span id="cryptoBenchSpinner" class="spinner-border spinner-border-sm d-none"></span>
-            <span>Run Benchmark</span>
+            <span>Run benchmark</span>
           </button>
         </div>
       </div>
@@ -269,28 +245,28 @@
       <div class="row g-2 mb-3 text-center">
         <div class="col-6 col-md-3">
           <div class="border rounded p-2 bg-light">
-            <div class="small text-muted">Encrypt Latency</div>
+            <div class="small text-muted">Encrypt latency</div>
             <div class="fw-bold" id="statEncLatency">-- ms</div>
             <div class="small text-muted" id="statEncSpeed">-- MB/s</div>
           </div>
         </div>
         <div class="col-6 col-md-3">
           <div class="border rounded p-2 bg-light">
-            <div class="small text-muted">Decrypt Latency</div>
+            <div class="small text-muted">Decrypt latency</div>
             <div class="fw-bold" id="statDecLatency">-- ms</div>
             <div class="small text-muted" id="statDecSpeed">-- MB/s</div>
           </div>
         </div>
         <div class="col-6 col-md-3">
           <div class="border rounded p-2 bg-light">
-            <div class="small text-muted">Tamper Test</div>
+            <div class="small text-muted">Tamper check</div>
             <div class="fw-bold text-success" id="statTamperStatus">Verified Pass</div>
             <div class="small text-muted">Bit corruption check</div>
           </div>
         </div>
         <div class="col-6 col-md-3">
           <div class="border rounded p-2 bg-light">
-            <div class="small text-muted">Master Key Fingerprint</div>
+            <div class="small text-muted">KEK fingerprint</div>
             <div class="fw-bold text-truncate mono-font" style="font-size: 0.8rem;" id="statKekFp">Loading...</div>
             <div class="small text-muted" id="statKekSource">instance/kek.key</div>
           </div>
@@ -299,7 +275,7 @@
 
       <!-- Compact Sandbox -->
       <div class="border rounded p-3 bg-light">
-        <div class="fw-semibold small text-muted mb-2 text-uppercase">Interactive Encryption Sandbox:</div>
+        <div class="fw-semibold small text-muted mb-2 text-uppercase">Encryption test:</div>
         <div class="row g-2">
           <div class="col-md-6">
             <textarea id="sandboxPlaintext" class="form-control form-control-sm mono-font" rows="2" placeholder="Text payload...">CONFIDENTIAL_PAYLOAD: user_id=482; clearance=2</textarea>
@@ -311,7 +287,7 @@
           <div class="col-md-6">
             <textarea id="sandboxCiphertext" class="form-control form-control-sm mono-font" rows="2" placeholder="Ciphertext token..."></textarea>
             <div class="d-flex justify-content-between align-items-center mt-2">
-              <button id="btnSandboxDecrypt" class="btn btn-outline-secondary btn-sm">Decrypt & Verify</button>
+              <button id="btnSandboxDecrypt" class="btn btn-outline-secondary btn-sm">Decrypt and verify</button>
               <span id="sandboxTimingText" class="small text-muted"></span>
             </div>
           </div>

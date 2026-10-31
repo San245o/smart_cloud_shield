@@ -1,46 +1,35 @@
 {% extends "base.html" %}
-{% block title %}Cloud File Vault{% endblock %}
+{% block title %}Files{% endblock %}
 {% block body %}
-<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h1 class="h5 mb-0 fw-bold">Files</h1>
   <div>
-    <h1 class="h4 mb-0 fw-bold">Cloud File Vault</h1>
-    <div class="small text-muted">Zero-Trust document repository with Multi-Level Security (MLS) and JIT Break-Glass elevation</div>
-  </div>
-  <div class="d-flex align-items-center gap-2">
-    <div class="card p-2 px-3 border shadow-sm d-flex flex-row align-items-center gap-3 bg-white">
-      <div class="small text-muted">Your Clearance Level:</div>
-      {% set u_clr = clearance_info(current_user.clearance) %}
-      <span class="chip fw-bold" style="background: rgba(15, 23, 42, 0.05); border: 1.5px solid {{ u_clr.color }}; color: {{ u_clr.color }}; font-size: 0.85rem;">
-        {{ u_clr.code }} &bull; {{ u_clr.name|upper }}
-      </span>
-    </div>
+    {% set u_clr = clearance_info(current_user.clearance) %}
+    <span class="chip fw-bold" style="background: rgba(15, 23, 42, 0.05); border: 1px solid {{ u_clr.color }}; color: {{ u_clr.color }};">
+      Clearance {{ u_clr.code }} &bull; {{ u_clr.name }}
+    </span>
   </div>
 </div>
 
 {% if can_upload %}
 <div class="panel mb-4">
-  <div class="d-flex justify-content-between align-items-center mb-3">
-    <h2 class="h6 fw-bold mb-0">Upload & Encrypt Document</h2>
-    <span class="small text-muted">AES-256 Envelope Encryption &bull; Real-time DLP Policy Scan</span>
-  </div>
-  <form method="post" action="{{ url_for('upload') }}" enctype="multipart/form-data" class="row g-3 align-items-end">
+  <form method="post" action="{{ url_for('upload') }}" enctype="multipart/form-data" class="row g-2 align-items-end">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <div class="col-md-5">
-      <label class="form-label small fw-semibold" for="f">Select File <span class="text-muted fw-normal">(PDF, TXT, CSV, DOCX, XLSX, Images &bull; max 10 MB)</span></label>
+      <label class="form-label small fw-semibold" for="f">File</label>
       <input id="f" class="form-control" type="file" name="file" required>
     </div>
     <div class="col-md-4">
-      <label class="form-label small fw-semibold" for="min_clearance">Enforce Required Clearance Level</label>
+      <label class="form-label small fw-semibold" for="min_clearance">Clearance requirement</label>
       <select id="min_clearance" name="min_clearance" class="form-select">
-        <option value="0">L0 - Public (Open to all authenticated users)</option>
-        <option value="1" selected>L1 - Internal (General Employees)</option>
-        <option value="2">L2 - Confidential (Departmental & Managers)</option>
-        <option value="3">L3 - Top Secret (Strict IT / Security Clearance)</option>
+        <option value="0">L0 &bull; Public</option>
+        <option value="1" selected>L1 &bull; Internal</option>
+        <option value="2">L2 &bull; Confidential</option>
+        <option value="3">L3 &bull; Top Secret</option>
       </select>
-      <div class="form-text text-muted" style="font-size: 0.72rem;">DLP engine will auto-escalate if high-risk PII or credentials are detected.</div>
     </div>
     <div class="col-md-3">
-      <button class="btn btn-primary w-100 py-2 fw-semibold">Upload & Encrypt</button>
+      <button class="btn btn-primary w-100">Upload</button>
     </div>
   </form>
 </div>
@@ -48,16 +37,8 @@
 
 <div class="panel">
   <div class="d-flex justify-content-between align-items-center mb-3">
-    <div>
-      <h2 class="h6 fw-bold mb-0">Documents Repository</h2>
-      <div class="small text-muted">{{ files|length }} file{{ 's' if files|length != 1 else '' }} securely vaulted</div>
-    </div>
-    <div class="d-flex gap-2">
-      <span class="chip" style="background: rgba(16, 185, 129, 0.1); color: #059669; font-size: 0.72rem;">L0: Public</span>
-      <span class="chip" style="background: rgba(2, 132, 199, 0.1); color: #0284c7; font-size: 0.72rem;">L1: Internal</span>
-      <span class="chip" style="background: rgba(245, 158, 11, 0.1); color: #d97706; font-size: 0.72rem;">L2: Confidential</span>
-      <span class="chip" style="background: rgba(239, 68, 68, 0.1); color: #dc2626; font-size: 0.72rem;">L3: Top Secret</span>
-    </div>
+    <h2 class="h6 fw-bold mb-0">Documents</h2>
+    <span class="small text-muted">{{ files|length }} file{{ 's' if files|length != 1 else '' }}</span>
   </div>
 
   {% if files %}
@@ -65,11 +46,11 @@
     <table class="table t mb-0 align-middle">
       <thead>
         <tr>
-          <th>Document</th>
-          <th>Department</th>
-          <th>Classification</th>
-          <th>Required Clearance</th>
-          <th>Access Status</th>
+          <th>Name</th>
+          <th>Dept</th>
+          <th>Sensitivity</th>
+          <th>Required</th>
+          <th>Access</th>
           <th>Size</th>
           <th>Owner</th>
           <th class="text-end">Actions</th>
@@ -91,16 +72,16 @@
               <span class="chip chip-dedup" style="font-size: 0.7rem; padding: 1px 6px;">Dedup</span>
               {% endif %}
               {% if f.is_quarantined %}
-              <span class="chip chip-quarantined" style="font-size: 0.7rem; padding: 1px 6px;">QUARANTINED</span>
+              <span class="chip chip-quarantined" style="font-size: 0.7rem; padding: 1px 6px;">Quarantined</span>
               {% endif %}
             </div>
           </td>
-          <td><span class="text-secondary fw-semibold">{{ f.department|capitalize }}</span></td>
+          <td class="text-secondary small">{{ f.department|capitalize }}</td>
           <td>
             <span class="chip sens-{{ f.sensitivity }}">{{ f.sensitivity.replace('_', ' ')|capitalize }}</span>
           </td>
           <td>
-            <span class="chip fw-bold" style="background: rgba(15, 23, 42, 0.05); border: 1px solid {{ clr_m.color }}; color: {{ clr_m.color }}; font-size: 0.75rem;">
+            <span class="chip" style="border: 1px solid {{ clr_m.color }}; color: {{ clr_m.color }}; font-weight: 600; font-size: 0.75rem;">
               {{ clr_m.code }} &bull; {{ clr_m.name }}
             </span>
           </td>
@@ -108,55 +89,48 @@
             {% if f.is_quarantined %}
               <span class="chip chip-bad" style="font-size: 0.72rem;">Locked</span>
             {% elif has_grant %}
-              <span class="chip" style="background: #f3e8ff; color: #7e22ce; border: 1px solid #c084fc; font-size: 0.72rem; font-weight: 600;" title="Approved by {{ grant_obj.reviewed_by }}">
-                ⚡ Temp Grant Active
+              <span class="chip" style="background: #f3e8ff; color: #7e22ce; border: 1px solid #c084fc; font-size: 0.72rem;">
+                Temp access active
               </span>
             {% elif is_pending %}
-              <span class="chip" style="background: #fef3c7; color: #b45309; border: 1px solid #fcd34d; font-size: 0.72rem; font-weight: 600;">
-                ⏳ Elevation Pending
+              <span class="chip" style="background: #fef3c7; color: #b45309; border: 1px solid #fcd34d; font-size: 0.72rem;">
+                Pending review
               </span>
             {% elif is_allowed %}
-              <span class="chip chip-ok" style="font-size: 0.72rem;">
-                ✓ Clearance Match
-              </span>
+              <span class="chip chip-ok" style="font-size: 0.72rem;">Match</span>
             {% else %}
-              <span class="chip chip-mid" style="font-size: 0.72rem;">
-                ⚠️ Insufficient (Need {{ clr_m.code }})
-              </span>
+              <span class="chip chip-mid" style="font-size: 0.72rem;">Needs {{ clr_m.code }}</span>
             {% endif %}
           </td>
           <td class="text-muted small">{{ (f.size / 1024)|round(1) }} KB</td>
           <td class="text-secondary small">{{ f.owner.username if f.owner else '-' }}</td>
           <td class="text-end text-nowrap">
             {% if f.is_quarantined %}
-              <span class="chip chip-bad me-2">Access Locked</span>
+              <span class="chip chip-bad me-2">Locked</span>
             {% else %}
               <a class="btn btn-sm btn-outline-secondary me-1" href="{{ url_for('preview', fid=f.id) }}">Preview</a>
               
               {% if is_allowed %}
                 <a class="btn btn-sm btn-primary me-1" href="{{ url_for('download', fid=f.id) }}">Download</a>
                 {% if f.sensitivity in ('confidential', 'highly_confidential') %}
-                <a class="btn btn-sm btn-outline-secondary me-1" href="{{ url_for('download', fid=f.id, mode='redacted') }}" title="Download with sensitive values masked">Masked Copy</a>
+                <a class="btn btn-sm btn-outline-secondary me-1" href="{{ url_for('download', fid=f.id, mode='redacted') }}">Masked</a>
                 {% endif %}
               {% else %}
                 {% if is_pending %}
-                  <button class="btn btn-sm btn-outline-warning me-1" disabled title="Elevation request is currently under admin review">
-                    ⏳ Requested
-                  </button>
+                  <button class="btn btn-sm btn-outline-warning me-1" disabled>Pending</button>
                 {% elif current_user.role != 'guest' and current_user.status != 'restricted' %}
-                  <button class="btn btn-sm btn-warning text-dark fw-bold me-1 btn-elevate"
+                  <button class="btn btn-sm btn-warning text-dark fw-semibold me-1 btn-elevate"
                           data-fid="{{ f.id }}"
                           data-fname="{{ f.original_name }}"
                           data-fdept="{{ f.department|capitalize }}"
-                          data-reqclr="{{ clr_m.code }} - {{ clr_m.name }}"
-                          data-userclr="{{ u_clr.code }} - {{ u_clr.name }}"
-                          title="Request temporary elevation for this restricted document">
-                    ⚡ Request Elevation
+                          data-reqclr="{{ clr_m.code }} &bull; {{ clr_m.name }}"
+                          data-userclr="{{ u_clr.code }} &bull; {{ u_clr.name }}">
+                    Request elevation
                   </button>
                 {% endif %}
 
                 {% if f.sensitivity in ('confidential', 'highly_confidential') and current_user.role != 'guest' and current_user.status != 'restricted' %}
-                <a class="btn btn-sm btn-outline-secondary me-1" href="{{ url_for('download', fid=f.id, mode='redacted') }}" title="No clearance for raw file; download safe redacted copy">Masked Copy</a>
+                <a class="btn btn-sm btn-outline-secondary me-1" href="{{ url_for('download', fid=f.id, mode='redacted') }}">Masked</a>
                 {% endif %}
               {% endif %}
             {% endif %}
@@ -183,7 +157,7 @@
     </table>
   </div>
   {% else %}
-  <p class="text-muted mb-0 py-3 text-center">No files uploaded yet. Select a file above to scan and store it.</p>
+  <p class="text-muted mb-0 py-3 text-center">No files uploaded yet.</p>
   {% endif %}
 </div>
 
@@ -194,59 +168,44 @@
       <form id="elevationForm" method="post" action="">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
-          <h5 class="h6 mb-0 fw-bold d-flex align-items-center gap-2">
-            <span>⚡</span>
-            <span>Request Clearance Elevation (JIT Break-Glass)</span>
-          </h5>
+          <h5 class="h6 mb-0 fw-bold">Request clearance elevation</h5>
           <button type="button" class="btn-close" id="btnElevationClose" aria-label="Close"></button>
         </div>
         
         <div class="p-3 bg-light rounded border mb-3 small">
-          <div class="d-flex justify-content-between mb-2">
-            <span class="text-muted">Target Document:</span>
+          <div class="d-flex justify-content-between mb-1">
+            <span class="text-muted">Document:</span>
             <strong id="modalFileName" class="text-dark">-</strong>
           </div>
-          <div class="d-flex justify-content-between mb-2">
-            <span class="text-muted">Department Wall:</span>
-            <span id="modalFileDept" class="fw-semibold text-secondary">-</span>
-          </div>
-          <div class="d-flex justify-content-between mb-2">
-            <span class="text-muted">Required Clearance:</span>
+          <div class="d-flex justify-content-between mb-1">
+            <span class="text-muted">Required:</span>
             <span id="modalReqClearance" class="fw-bold text-danger">-</span>
           </div>
           <div class="d-flex justify-content-between">
-            <span class="text-muted">Your Clearance Level:</span>
+            <span class="text-muted">Your level:</span>
             <span id="modalUserClearance" class="fw-bold text-primary">-</span>
           </div>
         </div>
 
         <div class="mb-3">
-          <label for="justificationInput" class="form-label small fw-semibold">
-            Business Justification <span class="text-danger">*</span>
-          </label>
+          <label for="justificationInput" class="form-label small fw-semibold">Justification</label>
           <textarea id="justificationInput" name="justification" class="form-control form-control-sm" rows="3"
-                    placeholder="e.g., Auditing cross-department Q3 financial statements as authorized by supervisor..." required minlength="5"></textarea>
-          <div class="form-text text-muted" style="font-size: 0.72rem;">
-            Recorded in the hash-chained audit log. Administrators review all justifications before granting temporary access.
-          </div>
+                    placeholder="Reason for temporary access..." required minlength="5"></textarea>
         </div>
 
         <div class="mb-3">
-          <label for="durationSelect" class="form-label small fw-semibold">Requested Access Window</label>
+          <label for="durationSelect" class="form-label small fw-semibold">Access window</label>
           <select id="durationSelect" name="duration_hours" class="form-select form-select-sm">
-            <option value="1">1 Hour (Quick Verification)</option>
-            <option value="2" selected>2 Hours (Standard Task Window)</option>
-            <option value="4">4 Hours (Extended Analysis)</option>
-            <option value="24">24 Hours (Full Working Day)</option>
+            <option value="1">1 hour</option>
+            <option value="2" selected>2 hours</option>
+            <option value="4">4 hours</option>
+            <option value="24">24 hours</option>
           </select>
-          <div class="form-text text-muted" style="font-size: 0.72rem;">
-            Access automatically expires after this window without permanently modifying your account privileges.
-          </div>
         </div>
 
         <div class="d-flex justify-content-end gap-2 border-top pt-3">
           <button type="button" class="btn btn-outline-secondary btn-sm" id="btnElevationCancel">Cancel</button>
-          <button type="submit" class="btn btn-primary btn-sm fw-semibold">Submit Request to Admin</button>
+          <button type="submit" class="btn btn-primary btn-sm fw-semibold">Submit</button>
         </div>
       </form>
     </div>
@@ -257,8 +216,7 @@
 .modal-backdrop-custom {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(15, 23, 42, 0.55);
-  backdrop-filter: blur(2px);
+  background: rgba(15, 23, 42, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -267,14 +225,14 @@
 }
 .modal-dialog-custom {
   width: 100%;
-  max-width: 520px;
+  max-width: 480px;
 }
 .modal-content-custom {
   background: #ffffff;
-  border-radius: var(--radius-lg, 12px);
+  border-radius: var(--radius-lg, 10px);
   border: 1px solid var(--border, #e2e8f0);
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-  padding: 1.5rem;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  padding: 1.25rem;
 }
 </style>
 
@@ -292,7 +250,7 @@
   if (btnClose) btnClose.addEventListener("click", closeModal);
   if (btnCancel) btnCancel.addEventListener("click", closeModal);
   if (modal) {
-    modal.addEventListener("click", (e) => {
+    modal.addEventListener("click", e => {
       if (e.target === modal) closeModal();
     });
   }
@@ -301,14 +259,12 @@
     btn.addEventListener("click", () => {
       const fid = btn.getAttribute("data-fid");
       const fname = btn.getAttribute("data-fname");
-      const fdept = btn.getAttribute("data-fdept");
       const reqclr = btn.getAttribute("data-reqclr");
       const userclr = btn.getAttribute("data-userclr");
 
       document.getElementById("modalFileName").textContent = fname;
-      document.getElementById("modalFileDept").textContent = fdept;
-      document.getElementById("modalReqClearance").textContent = reqclr;
-      document.getElementById("modalUserClearance").textContent = userclr;
+      document.getElementById("modalReqClearance").innerHTML = reqclr;
+      document.getElementById("modalUserClearance").innerHTML = userclr;
 
       form.action = `/request-elevation/${fid}`;
       document.getElementById("justificationInput").value = "";
