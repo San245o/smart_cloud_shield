@@ -2,6 +2,14 @@
 {% block title %}Secure In-Browser Preview - {{ file.original_name }}{% endblock %}
 {% block body %}
 <style>
+  /* Strict Anti-Copy & Anti-Selection CSS */
+  body, .watermark-container, .preview-content, .preview-img {
+    -webkit-user-select: none !important;
+    -moz-user-select: none !important;
+    -ms-user-select: none !important;
+    user-select: none !important;
+    -webkit-touch-callout: none !important;
+  }
   .watermark-container {
     position: relative;
     overflow: hidden;
@@ -10,8 +18,6 @@
     border-radius: var(--radius-lg);
     padding: 1.5rem;
     min-height: 440px;
-    user-select: none;
-    -webkit-user-select: none;
   }
   .watermark-overlay {
     position: absolute;
@@ -23,7 +29,7 @@
     align-content: space-around;
     justify-content: space-around;
     transform: rotate(-25deg) translate(-20%, -20%);
-    opacity: 0.06;
+    opacity: 0.07;
     z-index: 10;
     color: #0f172a;
     font-weight: 700;
@@ -50,6 +56,7 @@
     border-radius: var(--radius);
     border: 1px solid var(--border);
     line-height: 1.6;
+    transition: filter 0.2s ease-in-out;
   }
   .preview-img {
     position: relative;
@@ -59,11 +66,66 @@
     object-fit: contain;
     border-radius: var(--radius);
     border: 1px solid var(--border);
+    transition: filter 0.2s ease-in-out;
   }
+
+  /* DevTools Shield Overlay */
+  .devtools-shield {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(15, 23, 42, 0.94);
+    z-index: 50;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #f1f5f9;
+    text-align: center;
+    padding: 2rem;
+    border-radius: var(--radius-lg);
+  }
+
+  /* Floating DLP Warning Toast */
+  #dlpToast {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-100px);
+    background: #0f172a;
+    color: #fca5a5;
+    border: 1px solid #ef4444;
+    padding: 10px 22px;
+    border-radius: 30px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4);
+    z-index: 9999;
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease;
+    opacity: 0;
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  #dlpToast.show {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+  }
+
+  /* Anti-Print Hardening */
   @media print {
-    body { display: none !important; }
+    html, body {
+      display: none !important;
+      visibility: hidden !important;
+    }
   }
 </style>
+
+<!-- Floating DLP Notification Toast -->
+<div id="dlpToast">
+  <span style="font-size: 1.1rem;">⚠️</span>
+  <span id="dlpToastMsg">Action prohibited: Document protected by Zero-Trust DLP policy.</span>
+</div>
 
 <div class="panel mb-3">
   <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
@@ -88,13 +150,31 @@
   </div>
 </div>
 
+<!-- DLP Screen Shield Banner -->
+<div class="alert alert-dark d-flex align-items-center justify-content-between py-2 px-3 mb-3 small" style="background: #0f172a; color: #38bdf8; border: 1px solid #1e293b;">
+  <div class="d-flex align-items-center gap-2">
+    <span class="fs-6">🛡️</span>
+    <span><strong>DLP Shield Enforced:</strong> Clipboard copy/paste, text selection, right-click inspect, and developer tools are locked on this document.</span>
+  </div>
+  <span class="badge bg-secondary-subtle text-info border border-info-subtle">Zero-Trust Protected</span>
+</div>
+
 {% if is_redacted %}
 <div class="alert alert-info py-2 mb-3 small">
   <strong>Masked Preview:</strong> Sensitive numbers, payment cards, and credentials have been automatically masked for your clearance level.
 </div>
 {% endif %}
 
-<div class="watermark-container mb-3">
+<div class="watermark-container mb-3 position-relative">
+  <!-- DevTools Shield Screen (Appears if DevTools is Opened) -->
+  <div id="devtoolsShieldOverlay" class="devtools-shield d-none">
+    <div class="fs-1 mb-2">🛑</div>
+    <h3 class="h5 fw-bold text-danger mb-2">INSPECT / DEVTOOLS DETECTED</h3>
+    <p class="small text-muted mb-0" style="max-width: 440px;">
+      Document contents have been shielded to protect privileged data. Close developer tools or restore standard browser view to resume preview.
+    </p>
+  </div>
+
   <div class="watermark-overlay" aria-hidden="true">
     {% for _ in range(16) %}
     <div class="watermark-item">{{ watermark_text }}</div>
@@ -103,14 +183,149 @@
 
   {% if image_src %}
   <div class="text-center">
-    <img src="{{ image_src }}" alt="Secure preview" class="preview-img">
+    <img id="securePreviewImg" src="{{ image_src }}" alt="Secure preview" class="preview-img">
   </div>
   {% else %}
-  <pre class="preview-content mb-0">{{ content_display }}</pre>
+  <pre id="securePreviewText" class="preview-content mb-0">{{ content_display }}</pre>
   {% endif %}
 </div>
 
 <div class="text-muted small text-center">
   Secure preview &bull; Monitored viewing session for <code>{{ current_user.username }}</code>
 </div>
+
+<script>
+(function() {
+  const toast = document.getElementById("dlpToast");
+  const toastMsg = document.getElementById("dlpToastMsg");
+  let toastTimer = null;
+
+  function showDlpToast(message) {
+    if (toastMsg) toastMsg.textContent = message;
+    if (toast) {
+      toast.classList.add("show");
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        toast.classList.remove("show");
+      }, 2400);
+    }
+  }
+
+  // 1. Disable Right-Click Context Menu
+  document.addEventListener("contextmenu", function(e) {
+    e.preventDefault();
+    showDlpToast("Right-click context menu is locked by DLP policy.");
+    return false;
+  }, false);
+
+  // 2. Disable Clipboard Copy, Cut, and Paste
+  document.addEventListener("copy", function(e) {
+    e.preventDefault();
+    showDlpToast("Clipboard copy is disabled for confidential documents.");
+    return false;
+  }, false);
+
+  document.addEventListener("cut", function(e) {
+    e.preventDefault();
+    showDlpToast("Clipboard cut is disabled for confidential documents.");
+    return false;
+  }, false);
+
+  document.addEventListener("paste", function(e) {
+    e.preventDefault();
+    return false;
+  }, false);
+
+  // 3. Disable Text Selection & Dragging
+  document.addEventListener("selectstart", function(e) {
+    e.preventDefault();
+    return false;
+  }, false);
+
+  document.addEventListener("dragstart", function(e) {
+    e.preventDefault();
+    return false;
+  }, false);
+
+  // 4. Block Developer Tools & Inspect Keyboard Shortcuts
+  window.addEventListener("keydown", function(e) {
+    const isCmdOrCtrl = e.ctrlKey || e.metaKey;
+    const key = e.key ? e.key.toUpperCase() : "";
+    const code = e.code || "";
+
+    // F12 (DevTools)
+    if (e.key === "F12" || code === "F12") {
+      e.preventDefault();
+      e.stopPropagation();
+      showDlpToast("Developer tools shortcut (F12) is blocked.");
+      return false;
+    }
+
+    // Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+Shift+C (Inspect / Console)
+    if (isCmdOrCtrl && e.shiftKey && (key === "I" || key === "J" || key === "C")) {
+      e.preventDefault();
+      e.stopPropagation();
+      showDlpToast("Developer inspect shortcuts are disabled.");
+      return false;
+    }
+
+    // Ctrl+U (View Page Source)
+    if (isCmdOrCtrl && key === "U") {
+      e.preventDefault();
+      e.stopPropagation();
+      showDlpToast("Viewing page source is restricted by security policy.");
+      return false;
+    }
+
+    // Ctrl+S (Save Page As)
+    if (isCmdOrCtrl && key === "S") {
+      e.preventDefault();
+      e.stopPropagation();
+      showDlpToast("Saving webpage is restricted for vaulted files.");
+      return false;
+    }
+
+    // Ctrl+P (Print Page)
+    if (isCmdOrCtrl && key === "P") {
+      e.preventDefault();
+      e.stopPropagation();
+      showDlpToast("Printing confidential documents is prohibited.");
+      return false;
+    }
+
+    // Ctrl+C / Ctrl+A (Copy / Select All)
+    if (isCmdOrCtrl && (key === "C" || key === "A" || key === "X")) {
+      e.preventDefault();
+      e.stopPropagation();
+      showDlpToast("Text selection and copy commands are blocked.");
+      return false;
+    }
+  }, true);
+
+  // 5. Active DevTools Open Detection (Shield content if DevTools docked/opened)
+  const shield = document.getElementById("devtoolsShieldOverlay");
+  const textEl = document.getElementById("securePreviewText");
+  const imgEl = document.getElementById("securePreviewImg");
+
+  function checkDevTools() {
+    const threshold = 160;
+    const widthDiff = window.outerWidth - window.innerWidth > threshold;
+    const heightDiff = window.outerHeight - window.innerHeight > threshold;
+    const isDocked = widthDiff || heightDiff;
+
+    if (isDocked) {
+      if (shield) shield.classList.remove("d-none");
+      if (textEl) textEl.style.filter = "blur(18px)";
+      if (imgEl) imgEl.style.filter = "blur(18px)";
+    } else {
+      if (shield) shield.classList.add("d-none");
+      if (textEl) textEl.style.filter = "none";
+      if (imgEl) imgEl.style.filter = "none";
+    }
+  }
+
+  window.addEventListener("resize", checkDevTools);
+  setInterval(checkDevTools, 700);
+})();
+</script>
 {% endblock %}
