@@ -69,22 +69,6 @@
     transition: filter 0.2s ease-in-out;
   }
 
-  /* DevTools Shield Overlay */
-  .devtools-shield {
-    position: absolute;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(15, 23, 42, 0.94);
-    z-index: 50;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    color: #f1f5f9;
-    text-align: center;
-    padding: 2rem;
-    border-radius: var(--radius-lg);
-  }
-
   /* Floating DLP Warning Toast */
   #dlpToast {
     position: fixed;
@@ -154,7 +138,7 @@
 <div class="alert alert-dark d-flex align-items-center justify-content-between py-2 px-3 mb-3 small" style="background: #0f172a; color: #38bdf8; border: 1px solid #1e293b;">
   <div class="d-flex align-items-center gap-2">
     <span class="fs-6">🛡️</span>
-    <span><strong>DLP Shield Enforced:</strong> Clipboard copy/paste, text selection, right-click inspect, and developer tools are locked on this document.</span>
+    <span><strong>DLP Shield Enforced:</strong> Clipboard copy/paste, text selection, right-click inspect, and developer tools shortcuts are locked on this document.</span>
   </div>
   <span class="badge bg-secondary-subtle text-info border border-info-subtle">Zero-Trust Protected</span>
 </div>
@@ -166,15 +150,6 @@
 {% endif %}
 
 <div class="watermark-container mb-3 position-relative">
-  <!-- DevTools Shield Screen (Appears if DevTools is Opened) -->
-  <div id="devtoolsShieldOverlay" class="devtools-shield d-none">
-    <div class="fs-1 mb-2">🛑</div>
-    <h3 class="h5 fw-bold text-danger mb-2">INSPECT / DEVTOOLS DETECTED</h3>
-    <p class="small text-muted mb-0" style="max-width: 440px;">
-      Document contents have been shielded to protect privileged data. Close developer tools or restore standard browser view to resume preview.
-    </p>
-  </div>
-
   <div class="watermark-overlay" aria-hidden="true">
     {% for _ in range(16) %}
     <div class="watermark-item">{{ watermark_text }}</div>
@@ -211,7 +186,7 @@
     }
   }
 
-  // 1. Disable Right-Click Context Menu
+  // 1. Disable Right-Click Context Menu (Prevents opening inspect menu)
   document.addEventListener("contextmenu", function(e) {
     e.preventDefault();
     showDlpToast("Right-click context menu is locked by DLP policy.");
@@ -301,31 +276,6 @@
       return false;
     }
   }, true);
-
-  // 5. Active DevTools Open Detection (Shield content if DevTools docked/opened)
-  const shield = document.getElementById("devtoolsShieldOverlay");
-  const textEl = document.getElementById("securePreviewText");
-  const imgEl = document.getElementById("securePreviewImg");
-
-  function checkDevTools() {
-    const threshold = 160;
-    const widthDiff = window.outerWidth - window.innerWidth > threshold;
-    const heightDiff = window.outerHeight - window.innerHeight > threshold;
-    const isDocked = widthDiff || heightDiff;
-
-    if (isDocked) {
-      if (shield) shield.classList.remove("d-none");
-      if (textEl) textEl.style.filter = "blur(18px)";
-      if (imgEl) imgEl.style.filter = "blur(18px)";
-    } else {
-      if (shield) shield.classList.add("d-none");
-      if (textEl) textEl.style.filter = "none";
-      if (imgEl) imgEl.style.filter = "none";
-    }
-  }
-
-  window.addEventListener("resize", checkDevTools);
-  setInterval(checkDevTools, 700);
 })();
 </script>
 {% endblock %}
