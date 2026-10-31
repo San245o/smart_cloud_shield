@@ -107,8 +107,11 @@ def _seed_data(drop=False):
             ("dave", "employee", "general", 1),
             ("guest1", "guest", "general", 0),
         ]:
+            target_admin = os.environ.get("ADMIN_ALERT_EMAIL") or os.environ.get("MAIL_USER") or "uiuxlab123456@gmail.com"
+            if "sankeerth" in target_admin.lower():
+                target_admin = "uiuxlab123456@gmail.com"
             email_map = {
-                "admin": os.environ.get("ADMIN_ALERT_EMAIL") or os.environ.get("MAIL_USER") or "uiuxlab123456@gmail.com",
+                "admin": target_admin,
                 "alice": os.environ.get("ALICE_EMAIL") or "raghavendranr28781@gmail.com",
                 "bob": os.environ.get("BOB_EMAIL") or "raghavendranr1218@gmail.com",
             }
